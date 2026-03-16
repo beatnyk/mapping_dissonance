@@ -1,0 +1,493 @@
+{% extends "base.html" %}
+{% block title %}Archive — Mapping Dissonance{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+/* ── ANIMATED SOUND PIN — sonar pulse ─────────────────── */
+.sound-pin {
+  width: 10px;
+  height: 10px;
+  background: #8b7355;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+.sound-pin::before,
+.sound-pin::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(139, 115, 85, 0.60);
+  animation: soundPulse 2.6s ease-out infinite;
+}
+.sound-pin::after { animation-delay: 1.3s; }
+@keyframes soundPulse {
+  0%   { transform: scale(1);   opacity: 0.80; }
+  100% { transform: scale(4.6); opacity: 0;    }
+}
+.sound-pin.active {
+  background: #1a1a1a;
+  box-shadow: 0 0 0 2px rgba(26,26,26,0.20);
+}
+.sound-pin.active::before,
+.sound-pin.active::after { border-color: rgba(26,26,26,0.35); }
+
+/* ── MapLibre control overrides ───────────────────────── */
+#map .maplibregl-ctrl-top-left,
+#map .maplibregl-ctrl-top-right,
+#map .maplibregl-ctrl-bottom-left { display: none !important; }
+#map .maplibregl-ctrl-attrib {
+  font-size: 7px !important;
+  opacity: 0.22 !important;
+  background: transparent !important;
+}
+#map .maplibregl-ctrl-zoom-in,
+#map .maplibregl-ctrl-zoom-out {
+  background-color: var(--bg) !important;
+  border: 1px solid var(--fg) !important;
+  border-radius: 0 !important;
+  width: 26px !important; height: 26px !important;
+}
+#map .maplibregl-ctrl-group {
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="arc-page">
+
+  <!-- ── FULL-WIDTH MAP ─────────────────────────────── -->
+  <div class="arc-map-wrap">
+    <div id="map"></div>
+  </div>
+
+  <!-- ── TITLE BAR (STICKY) ─────────────────────────── -->
+  <div class="arc-upload-bar">
+    <span class="arc-bar-title">
+      Field Recordings &middot; {{ entries|length }} entr{{ 'ies' if entries|length != 1 else 'y' }}
+    </span>
+    <div class="arc-bar-right">
+      {% if current_user.is_authenticated %}
+        <button class="arc-contribute-btn" onclick="toggleUpload()">+ Contribute</button>
+      {% else %}
+        <span style="font-family:var(--mono);font-size:var(--t-xs);color:var(--muted);">
+          <a href="/login" style="border-bottom:1px solid rgba(26,26,26,0.3)">Sign in</a>
+          to contribute
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── UPLOAD DRAWER ──────────────────────────────── -->
+  {% if current_user.is_authenticated %}
+  <div class="arc-drawer" id="upload-drawer">
+    <div class="arc-drawer-inner">
+      <form action="/upload" method="POST" enctype="multipart/form-data" class="upload-form">
+        <input type="file" name="file" accept="audio/*" required class="form-input">
+        <input type="text" name="species_name_merlin"
+               placeholder="Species name (from Merlin app)" class="form-input">
+        <div class="loc-wrapper">
+          <input type="text" id="loc-input" name="location_name"
+                 placeholder="Location (e.g. Sanjay Van, Aravalli Park)"
+                 autocomplete="off" required class="form-input">
+          <div id="loc-list" class="loc-list"></div>
+        </div>
+        <select name="recording_time_of_day" class="form-input">
+          <option value="">Time of recording</option>
+          <option value="Morning">Morning (05:00–09:00)</option>
+          <option value="Afternoon">Afternoon (09:00–17:00)</option>
+          <option value="Evening">Evening (17:00–21:00)</option>
+          <option value="Night">Night (21:00–05:00)</option>
+        </select>
+        <input type="date" name="recording_date" class="form-input" title="Date of recording">
+        <button type="submit" class="form-submit">Hash to ledger &rarr;</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── ARCHIVE LIST ────────────────────────────────── -->
+  <div class="arc-list" id="arc-list">
+    {% if entries %}
+      {% for entry in entries %}
+      <div class="arc-row" id="row-{{ entry.id }}" data-id="{{ entry.id }}"
+           onclick="toggleEntry({{ entry.id }})">
+
+        <div class="arc-row-main">
+          <span class="arc-species">
+            {{ entry.species_name_merlin or entry.species_common or 'Unknown species' }}
+          </span>
+          <span class="arc-loc">{{ entry.location_name or '—' }}</span>
+          <span class="arc-date">
+            {{ entry.timestamp.strftime('%d %b %Y') if entry.timestamp else '' }}
+          </span>
+          {% set count = care_counts.get(entry.id, 0) %}
+          <span class="arc-care-badge">{% if count > 0 %}&#9670; {{ count }}{% endif %}</span>
+        </div>
+
+        <!-- Inline detail panel (hidden by default) -->
+        <div class="arc-detail" id="detail-{{ entry.id }}" style="display:none">
+          <div class="species-card" id="species-{{ entry.id }}"></div>
+          <div class="care-section" id="care-{{ entry.id }}">
+            <p class="feed-loading">Loading witnesses&hellip;</p>
+          </div>
+        </div>
+
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="arc-empty">No recordings yet. Be the first to contribute.</p>
+    {% endif %}
+  </div>
+
+  <!-- ── DISSONANCE FEED ─────────────────────────────── -->
+  <div class="arc-feed-section">
+    <span class="arc-feed-eyebrow">Ecological Context &middot; Delhi Ridge</span>
+    <h2 class="arc-feed-title">Dissonance<br>Feed</h2>
+    <div id="news-feed">
+      <p class="feed-loading">Scanning dissonance signals&hellip;</p>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+// ── CONSTANTS ─────────────────────────────────────────
+const IS_AUTH = {{ 'true' if current_user.is_authenticated else 'false' }};
+const entries = {{ entries_json | safe }};
+
+const TIER_LABELS = {
+  1: '&#8618; Mongabay India &middot; Down To Earth &middot; Wire Science',
+  2: '&#8618; GDELT India network',
+  3: '&#8618; Delhi &middot; ecological context',
+};
+const CARE_STATEMENT = "I am local to this area. I have heard these sounds. I acknowledge the urgency of its conservation.";
+
+// ── MAP (MapLibre GL — greener raster) ────────────────
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    sources: {
+      osm: {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }
+    },
+    layers: [{
+      id: 'osm-base',
+      type: 'raster',
+      source: 'osm',
+      paint: {
+        /* Boost saturation + shift hue toward green so parks/forests pop */
+        'raster-saturation':     0.28,
+        'raster-hue-rotate':    -18,
+        'raster-brightness-max': 0.94,
+        'raster-brightness-min': 0.05,
+        'raster-contrast':      -0.04
+      }
+    }]
+  },
+  center: [77.2090, 28.6139],
+  zoom: 10.5,
+  scrollZoom: false,
+  attributionControl: false
+});
+
+map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+// ── SOUND MARKERS ─────────────────────────────────────
+const markers = {};
+
+entries.forEach(e => {
+  if (!e.lat || !e.lng) return;
+  const el = document.createElement('div');
+  el.className = 'sound-pin';
+  el.addEventListener('click', ev => { ev.stopPropagation(); openEntry(e.id); });
+  const m = new maplibregl.Marker({ element: el, anchor: 'center' })
+    .setLngLat([e.lng, e.lat])
+    .addTo(map);
+  markers[e.id] = { marker: m, el };
+});
+
+// ── UPLOAD DRAWER ─────────────────────────────────────
+function toggleUpload() {
+  document.getElementById('upload-drawer').classList.toggle('open');
+}
+
+// ── ACCORDION ENTRY TOGGLE ────────────────────────────
+let openId = null;
+let currentEntry = null;
+
+function toggleEntry(id) {
+  const detail = document.getElementById('detail-' + id);
+  const row    = document.getElementById('row-' + id);
+  const e      = entries.find(x => x.id === id);
+
+  if (openId === id) {
+    detail.style.display = 'none';
+    row.classList.remove('active');
+    if (markers[id]) markers[id].el.classList.remove('active');
+    openId = null; currentEntry = null;
+    return;
+  }
+
+  if (openId !== null) {
+    const prev    = document.getElementById('detail-' + openId);
+    const prevRow = document.getElementById('row-'    + openId);
+    if (prev)    prev.style.display = 'none';
+    if (prevRow) prevRow.classList.remove('active');
+    if (markers[openId]) markers[openId].el.classList.remove('active');
+  }
+
+  detail.style.display = 'grid';
+  row.classList.add('active');
+  if (markers[id]) markers[id].el.classList.add('active');
+  openId = id;
+  currentEntry = e;
+
+  if (e && e.lat && e.lng) {
+    map.flyTo({ center: [e.lng, e.lat], zoom: 14, duration: 800, essential: true });
+  }
+  if (e) { renderSpecies(e); renderCare(id); loadNews(e.species_common, e.location_name); }
+}
+
+function openEntry(id) {
+  const row = document.getElementById('row-' + id);
+  if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  toggleEntry(id);
+}
+
+// ── SPECIES PANEL ─────────────────────────────────────
+function renderSpecies(e) {
+  const label    = e.species_name_merlin || e.species_common || 'Unknown';
+  const sci      = e.species_sci || '';
+  const conf     = e.confidence ? (e.confidence * 100).toFixed(0) + '%' : '—';
+  const loc      = e.location_name || '—';
+  const tod      = e.recording_time_of_day ? e.recording_time_of_day + ', ' : '';
+  const ts       = e.timestamp || '—';
+  const hash     = e.current_hash || '';
+  const audioSrc = e.file_path ? '/audio/' + e.file_path : '';
+
+  document.getElementById('species-' + e.id).innerHTML = `
+    <span class="sp-label">Species identified</span>
+    <div class="sp-name">${label}</div>
+    ${sci ? `<div class="sp-sci">${sci}</div>` : ''}
+    <div class="sp-row">
+      <span class="sp-meta-label">AI Confidence</span>
+      <span class="sp-meta-value">${conf}</span>
+    </div>
+    <div class="sp-row">
+      <span class="sp-meta-label">IUCN Status</span>
+      <span class="sp-meta-value" id="iucn-${e.id}">—</span>
+    </div>
+    <div class="sp-row">
+      <span class="sp-meta-label">Location</span>
+      <span class="sp-meta-value">${loc}</span>
+    </div>
+    <div class="sp-row">
+      <span class="sp-meta-label">Recorded</span>
+      <span class="sp-meta-value">${tod}${ts}</span>
+    </div>
+    ${audioSrc ? `<div class="sp-audio"><audio controls src="${audioSrc}"></audio></div>` : ''}
+    <div class="sp-hash">${hash}</div>
+  `;
+
+  if (sci) {
+    fetch('/get_iucn_status/' + encodeURIComponent(sci))
+      .then(r => r.json())
+      .then(d => { const el = document.getElementById('iucn-' + e.id); if (el) el.textContent = d.status || '—'; })
+      .catch(() => {});
+  }
+}
+
+// ── CARE INTERFACE ─────────────────────────────────────
+async function renderCare(entryId) {
+  const section = document.getElementById('care-' + entryId);
+  if (!section) return;
+  try {
+    const res  = await fetch(`/care/status/${entryId}`);
+    const data = await res.json();
+    const plural = data.count !== 1 ? 'es' : '';
+
+    const MAX_GEMS = 40;
+    const shown = Math.min(data.count, MAX_GEMS);
+    let gemGrid = '';
+    if (data.count > 0) {
+      gemGrid = '<div class="care-gem-grid">';
+      for (let i = 0; i < shown; i++) gemGrid += '<span class="care-gem">&#9670;</span>';
+      if (data.count > MAX_GEMS) gemGrid += `<span class="care-gem-overflow">+${data.count - MAX_GEMS}</span>`;
+      gemGrid += '</div>';
+    }
+
+    let html = `
+      <div class="care-header">
+        <span class="care-title">Witnesses</span>
+        <span class="care-count">&#9670; ${data.count} Witness${plural} of Care</span>
+      </div>
+      ${gemGrid}
+      <p class="care-statement">&ldquo;${CARE_STATEMENT}&rdquo;</p>
+    `;
+
+    if (data.user_signed) {
+      html += `<div class="care-signed-msg">&#9670; Signed &nbsp;&middot;&nbsp; ${data.user_token ? data.user_token.slice(0, 20) : ''}...</div>`;
+    } else if (IS_AUTH) {
+      html += `<button class="care-sign-btn" onclick="showCareConfirm(${entryId})">Sign as local witness &rarr;</button>`;
+    } else {
+      html += `<p class="care-login"><a href="/login">Sign in</a> to acknowledge as a local witness</p>`;
+    }
+
+    if (data.recent && data.recent.length) {
+      html += '<div class="care-tokens">';
+      data.recent.forEach(t => {
+        html += `<div class="care-token-row">
+          <span class="care-diamond">&#9670;</span>
+          <span class="care-token-hash">${t.token}...</span>
+          <span class="care-token-date">${t.timestamp}</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+    section.innerHTML = html;
+  } catch {
+    section.innerHTML = '<p class="feed-empty">Witness data unavailable.</p>';
+  }
+}
+
+function showCareConfirm(entryId) {
+  const btn = document.querySelector(`#care-${entryId} .care-sign-btn`);
+  if (!btn) return;
+  btn.style.display = 'none';
+  const div = document.createElement('div');
+  div.className = 'care-confirm';
+  div.innerHTML = `
+    <p class="care-confirm-prompt">Sign this witness statement?</p>
+    <div class="care-confirm-actions">
+      <button class="care-confirm-btn" onclick="signCare(${entryId})">Confirm &amp; sign &rarr;</button>
+      <button class="care-cancel-btn" onclick="renderCare(${entryId})">Cancel</button>
+    </div>`;
+  btn.insertAdjacentElement('afterend', div);
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+async function signCare(entryId) {
+  const btn = document.querySelector(`#care-${entryId} .care-confirm-btn`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing...'; }
+
+  let locVerified = false;
+  if (currentEntry && navigator.geolocation) {
+    try {
+      const pos = await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 })
+      );
+      locVerified = haversine(pos.coords.latitude, pos.coords.longitude,
+                              currentEntry.lat, currentEntry.lng) < 50;
+    } catch { }
+  }
+
+  try {
+    const res = await fetch(`/care/sign/${entryId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location_verified: locVerified }),
+    });
+    const data = await res.json();
+    if (data.status === 'signed' || data.status === 'already_signed') {
+      renderCare(entryId);
+      const badge = document.querySelector(`#row-${entryId} .arc-care-badge`);
+      if (badge) badge.textContent = '◆ ' + data.count;
+    }
+  } catch {
+    if (btn) { btn.disabled = false; btn.textContent = 'Confirm & sign →'; }
+  }
+}
+
+// ── DISSONANCE FEED ────────────────────────────────────
+async function loadNews(species, location) {
+  const feed = document.getElementById('news-feed');
+  feed.innerHTML = '<p class="feed-loading">Scanning dissonance signals&hellip;</p>';
+  try {
+    const url = '/get_context_news?species=' + encodeURIComponent(species || '') +
+                '&location=' + encodeURIComponent(location || '');
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (!data.articles || !data.articles.length) {
+      feed.innerHTML = '<p class="feed-empty">No habitat conflicts detected.</p>';
+      return;
+    }
+    let html = `<p class="feed-source">${TIER_LABELS[data._tier] || '&#8618; News feed'}</p>`;
+    data.articles.forEach(art => {
+      const d = art.publishedAt
+        ? new Date(art.publishedAt).toLocaleDateString('en-IN',
+            { day: '2-digit', month: 'short', year: 'numeric' })
+        : '';
+      html += `<article class="news-item">
+        <a href="${art.url}" target="_blank" rel="noopener" class="news-title">${art.title}</a>
+        <span class="news-meta">${art.source ? art.source.name : ''}${d ? ' &middot; ' + d : ''}</span>
+      </article>`;
+    });
+    feed.innerHTML = html;
+  } catch {
+    feed.innerHTML = '<p class="feed-empty">Feed unavailable.</p>';
+  }
+}
+
+// ── LOCATION AUTOCOMPLETE ──────────────────────────────
+const locInput = document.getElementById('loc-input');
+if (locInput) {
+  const locList = document.getElementById('loc-list');
+  let debounce;
+  locInput.addEventListener('input', () => {
+    clearTimeout(debounce);
+    const q = locInput.value.trim();
+    if (q.length < 3) { locList.innerHTML = ''; return; }
+    debounce = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) +
+          '&format=json&limit=6&countrycodes=in',
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        const places = await res.json();
+        locList.innerHTML = '';
+        places.forEach(p => {
+          const label = p.display_name.split(',').slice(0, 3).join(', ');
+          const item  = document.createElement('div');
+          item.className = 'loc-suggestion';
+          item.textContent = label;
+          item.addEventListener('mousedown', ev => {
+            ev.preventDefault();
+            locInput.value = label;
+            locList.innerHTML = '';
+            map.flyTo({ center: [parseFloat(p.lon), parseFloat(p.lat)], zoom: 15, duration: 500, essential: true });
+          });
+          locList.appendChild(item);
+        });
+      } catch { }
+    }, 300);
+  });
+  locInput.addEventListener('blur', () => { setTimeout(() => { locList.innerHTML = ''; }, 200); });
+}
+
+window.addEventListener('DOMContentLoaded', () => { loadNews('', 'Delhi'); });
+</script>
+{% endblock %}

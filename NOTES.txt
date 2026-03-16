@@ -1,0 +1,98 @@
+News API: ec60c1c171d04328a5ae4df46e5841f5
+
+IUCN API: Vkkhj6JS79gDMKW7iRc33aF45k2fZAnpTdXe
+
+If you get an error saying the file doesn't exist, check if it's just `dissonance_ledger.db` in your main folder and run `rm dissonance_ledger.db` instead.)*
+
+
+To start the server:
+cd "/Users/beatnyk/Documents/Akademie Solitude/mapping_dissonance"
+.venv/bin/python app.py
+
+Prologue:
+
+The Ridge is not a range of hills. It is a spine.
+
+It is the calcified backbone of a primordial titan that fell into a dreamless sleep two billion years ago. Long before the Himalayas were a thought in the earth’s mind, this quartzite was already old. It is the first architecture of the world. Each jagged outcrop is a vertebra; each hidden cave is a lung that still breathes the cool, damp air of the first morning.
+
+We are the ants crawling over this sleeping god. We build our nests of glass and steel against its ribs, thinking ourselves masters of the height. But the stone remembers. It remembers the weight of the first rains and the silence of the first stars. It knows that we are only a fever, a passing heat in the long, cold life of the rock.
+
+
+Chapter I: The Silver Grove and the Weaver of Shadows
+
+Lohan was a man of the earth, though his skin was the color of parched bark. He belonged to a lineage of watchers, men who did not own the land but were owned by it. In the time of the great silence, Lohan lived near the edge of Mangar Bani.
+
+The Dhau trees grew there—strange, silver-skinned elders that clung to the cliffs with the desperation of a lover. To Lohan, the forest was not a collection of wood; it was a conversation. The wind in the leaves was the gossip of ancestors.
+
+One day, a merchant came from the plains. He arrived with bullock carts and men carrying axes of bright, cold iron. He did not look at the trees; he looked at the space they occupied, calculating how much grain their deaths could buy.
+
+"The wood is hard," the merchant said, testing a blade against his thumb. "It will burn long and hot."
+
+Lohan stood by the path, his hands empty. "The hermit, Gudariya Das, sleeps in these roots," Lohan said. His voice was like stones grinding together. "If you wound the tree, you wound the sleeper. And the sleeper does not like to be woken."
+
+The merchant laughed. It was a thin, dry sound. He swung his axe into the oldest Dhau.
+
+The forest went still. The birds did not fly; they simply ceased to exist in the air. When the blade bit into the silver bark, it did not scream. It groaned—a deep, tectonic vibration that traveled through Lohan’s feet. Then came the liquid. It was not the amber sap of a pine. It was dark, viscous, and smelled of iron and old secrets. It welled from the cut like blood from a fresh kill.
+
+The merchant pulled back, his hands stained. The sky turned a bruised purple. Lohan watched as the merchant’s eyes began to cloud over, as if a grey moth had laid its wings over his pupils.
+
+"I cannot see the sun," the merchant whispered.
+
+"The forest has taken your light," Lohan replied. "Because you tried to turn its life into ash."
+
+Lohan stayed in the Bani for forty days, washing the tree’s wound with the milk of wild goats until the bark scarred over. The merchant was never seen again, but the villagers say that on moonless nights, a blind man still wanders the ridge, feeling for the silver skin of the trees he once meant to burn.
+
+
+Chapter II: The City of Thirst
+
+Centuries are but a blink to the quartzite. Lohan’s name was different now, but his blood was the same. He was a stone-cutter in the service of a King who believed himself a God.
+
+Ghiyas-ud-din Tughlaq wanted a fortress that would mock the sky. He chose the highest ridge of the Aravallis to build Tughlaqabad. Lohan spent his days in the heat, his hammer singing against the stubborn stone. The Sultan was a man of "more." More walls. More height. More power.
+
+"Let no man work on anything but my fort," the Sultan commanded. "The Ridge is mine. Every stone is a soldier in my army."
+
+But the Ridge was thirsty. A few miles away, the Saint Nizamuddin was digging a Baoli—a deep, cool lung of water for the thirsty city. He was digging with love, while the Sultan was building with pride.
+
+The Sultan banned the sale of oil to the Saint. "Let them dig in the darkness," he sneered. "Water is for the obedient."
+
+Lohan, caught between the hammer and the prayer, watched the Saint at the edge of the pit. The Saint did not curse the Sultan’s life. He looked at the massive, dry stones of the fort and whispered to the air:
+
+"Ya rahe hissar, ya base gujjar." The words were soft, like the falling of a leaf, but they carried the weight of the mountain. That night, Lohan saw a miracle. The laborers dipped their lamps into the muddy water of the unfinished well. The water caught fire. It burned with a clear, white flame that smelled of jasmine and wet earth.
+
+The Sultan’s fort grew tall, but it was a hollow victory. The stone refused to hold the heat of life. The palace grew cold, even in the height of June. Within five years, the Sultan was dead—crushed by a pavilion that gave way as if the wood were tired of his weight. The fort was abandoned to the nomads and the goats.
+
+Lohan walked through the empty arches, his hammer quiet. He understood then that the Ridge does not belong to those who build upon it. it belongs to those who allow it to give.
+
+
+Chapter III: The Sapphire Tear
+
+The modern world arrived not with an axe or a hammer, but with a roar.
+
+Lohan was now an old man in a frayed coat, standing on the edge of the Bhati Mines. He watched the machines—great yellow beasts that bit into the earth and spat out the red sand. This was not the Sultan’s pride or the merchant’s greed. This was an appetite that had no face.
+
+For thirty years, the Ridge was hollowed out. The dust was everywhere—it was in the bread, in the lungs, in the very dreams of the children. They were mining the titan’s marrow.
+
+When the machines finally went silent, they left behind a landscape of scars. Lohan climbed down into one of the deep pits. Rain had filled the hollow, creating a lake of a blue so intense it hurt the eyes. People called it beautiful. They called it a "sanctuary."
+
+Lohan knelt by the water. It was cold. It was toxic. It was the color of a dead man's veins. He saw a young boy preparing to dive into the sapphire depths.
+
+"Do not go in," Lohan said.
+
+"Why?" the boy asked, his skin bright with sweat. "The water is beautiful."
+
+"It is not a lake," Lohan said. "It is a wound. The mountain is bleeding blue, and it wants what was taken back. It has no more room for the living."
+
+The boy did not listen. He dived. Lohan watched the ripples spread across the sapphire surface. The boy did not come up. The water stayed still, a perfect, unblinking eye staring back at the sun. The Ridge had taken another soul to fill the hole we had dug in its heart.
+
+
+Epilogue:
+
+I am the last of the watchers.
+
+I stand on the Ridge today, and the city is a grey sea that laps against the stone. The air is thick with the smoke of our progress, and the leopards have retreated into the deepest shadows of the Bani.
+
+The titan is dying. Its spine is broken by highways, and its lungs are filled with the concrete of our ambition. But sometimes, in the quiet before the dawn, I feel a pulse. The quartzite is still there, deep beneath the asphalt.
+
+We think we are killing the forest. We think we are conquering the hill. But we are only killing ourselves. The Ridge will endure. It will wait for the concrete to crumble and the glass to turn back into sand. It will wait for the ants to finish their frantic work.
+
+And then, the titan will wake. It will shake the dust of our civilization from its ribs, and the silver Dhau trees will grow again from the ruins of our greed. The spine will be whole. And the silence will be perfect.

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Bird List — Mapping Dissonance{% endblock %}
+
+{% block content %}
+<div class="birdlist-page">
+
+  <div class="birdlist-header">
+    <h1 class="birdlist-title">Aravalli<br>Bird List</h1>
+    <p class="birdlist-meta">
+      {{ birds|length }} species &middot; Delhi Ridge / Aravalli Range &middot;
+      IUCN Red List status &middot; Local names: Hindi, Rajasthani, Tamil
+    </p>
+    <input
+      class="birdlist-search"
+      id="bl-search"
+      type="text"
+      placeholder="Search by name, species, or status..."
+      autocomplete="off"
+    >
+  </div>
+
+  <!-- Legend -->
+  <div class="birdlist-legend">
+    <div class="legend-item"><span class="legend-dot legend-dot--lc"></span>LC — Least Concern</div>
+    <div class="legend-item"><span class="legend-dot legend-dot--nt"></span>NT — Near Threatened</div>
+    <div class="legend-item"><span class="legend-dot legend-dot--vu"></span>VU — Vulnerable</div>
+    <div class="legend-item"><span class="legend-dot legend-dot--en"></span>EN — Endangered</div>
+    <div class="legend-item"><span class="legend-dot legend-dot--cr"></span>CR — Critically Endangered</div>
+  </div>
+
+  <!-- Bird table -->
+  <table class="birdlist-table" id="bl-table">
+    <thead>
+      <tr>
+        <th>Species</th>
+        <th>Hindi</th>
+        <th>Rajasthani</th>
+        <th>Tamil</th>
+        <th>IUCN</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for bird in birds %}
+      <tr data-search="{{ bird.common|lower }} {{ bird.scientific|lower }} {{ bird.hindi|lower }} {{ bird.iucn|lower }}">
+        <td>
+          <span class="bl-common">{{ bird.common }}</span>
+          <span class="bl-sci">{{ bird.scientific }}</span>
+        </td>
+        <td>
+          <span class="bl-local">{{ bird.hindi }}</span>
+        </td>
+        <td>
+          <span class="bl-local">{{ bird.rajasthani }}</span>
+        </td>
+        <td>
+          <span class="bl-local">{{ bird.tamil }}</span>
+        </td>
+        <td>
+          <span class="iucn-badge iucn-{{ bird.iucn }}">{{ bird.iucn }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+
+<script>
+(function () {
+  var search = document.getElementById('bl-search');
+  var rows   = document.querySelectorAll('#bl-table tbody tr');
+
+  search.addEventListener('input', function () {
+    var q = search.value.toLowerCase().trim();
+    var count = 0;
+    rows.forEach(function (row) {
+      var match = !q || row.getAttribute('data-search').indexOf(q) !== -1;
+      row.classList.toggle('bl-hidden', !match);
+      if (match) count++;
+    });
+  });
+})();
+</script>
+
+{% endblock %}

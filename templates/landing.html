@@ -1,0 +1,725 @@
+{% extends "base.html" %}
+{% block title %}Mapping Dissonance - The Aravalli Atlas{% endblock %}
+
+{% block head %}
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+
+<style>
+  /* ── GLOBAL THEME INHERITANCE & MUTE GREEN PALETTE ── */
+  :root {
+    /* Hand-drawn sketchy border-radius trick */
+    --sketch-radius: 2px 255px 3px 25px / 255px 5px 225px 3px;
+    
+    /* Mute Green Palette Integration */
+    --mute-base: #E2EBE6;
+    --mute-panel: rgba(226, 235, 230, 0.95);
+    --mute-border: #98C0B6;
+    --mute-text: #324B3C;
+    
+    --box-border: 1px solid var(--mute-border);
+  }
+
+  .sketchy-box {
+    border: var(--box-border);
+    border-radius: var(--sketch-radius);
+  }
+
+  /* ── GIF PRELOADER ── */
+  #preloader {
+    position: fixed;
+    top: 0; left: 0; 
+    width: 100vw; height: 100vh;
+    background-color: var(--mute-base);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1; /* FIXED: Starts fully opaque to prevent flash/glitch */
+    transition: opacity 1.2s ease-in-out;
+  }
+
+  .bird-loader-gif {
+    width: 200px;
+    height: auto;
+    border-radius: 50%;
+    mix-blend-mode: multiply;
+  }
+
+  /* ── INTRO DIALOG (BLURRED OVERLAY) ── */
+  #intro-overlay {
+    position: fixed;
+    top: 0; left: 0; 
+    width: 100vw; height: 100vh;
+    background-color: rgba(226, 235, 230, 0.4); /* Mute green tint */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 9000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.2s ease-in-out;
+  }
+  #intro-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .intro-dialog {
+    background: var(--mute-base);
+    color: var(--mute-text);
+    padding: 3.82vh 3.82vw; /* Golden ratio padding */
+    max-width: 61.8vw; /* Golden ratio width */
+    min-width: 320px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(23.6px);
+    transition: transform 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  #intro-overlay.active .intro-dialog {
+    transform: translateY(0);
+  }
+
+  .intro-tabs-nav {
+    display: flex;
+    gap: 23.6px;
+    margin-bottom: 23.6px;
+    border-bottom: var(--box-border);
+    padding-bottom: 14.6px;
+  }
+  .intro-tab-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    opacity: 0.4;
+    transition: opacity 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: inherit;
+    font-family: inherit;
+  }
+  .intro-tab-btn.active, .intro-tab-btn:hover {
+    opacity: 1;
+  }
+
+  .intro-content-wrapper {
+    overflow-y: auto;
+    flex-grow: 1;
+    margin-bottom: 23.6px;
+    padding-right: 14.6px;
+  }
+
+  .intro-tab-content {
+    display: none;
+    line-height: 1.618; /* Golden ratio line height */
+    font-size: 1.05rem;
+    text-align: justify;
+  }
+  .intro-tab-content.active {
+    display: block;
+    animation: fadeIn 0.6s ease;
+  }
+
+  .poem-verse {
+    white-space: pre-wrap;
+    text-align: center;
+    font-style: italic;
+  }
+
+  .enter-btn {
+    background: var(--mute-text);
+    color: var(--mute-base);
+    padding: 14.6px 23.6px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    align-self: flex-end;
+    font-family: inherit;
+    border: 1px solid var(--mute-text);
+  }
+  .enter-btn:hover {
+    background: transparent;
+    color: var(--mute-text);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ── MAP CONTAINER ── */
+  #parchment-map {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw; height: 100vh;
+    background-color: var(--mute-base);
+    z-index: 1;
+  }
+
+  /* ── INTERACTIVE LEGEND / FILTER ── */
+  .sketch-legend {
+    position: absolute;
+    bottom: 3.82vh; 
+    left: 2.36vw;
+    z-index: 1000;
+    background: var(--mute-panel);
+    color: var(--mute-text);
+    padding: 23.6px; 
+    backdrop-filter: blur(8px);
+    box-shadow: 4px 4px 15px rgba(0,0,0,0.05);
+  }
+  .legend-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 14.6px;
+    border-bottom: var(--box-border);
+    padding-bottom: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    font-weight: normal;
+    cursor: pointer;
+    transition: opacity 0.3s;
+  }
+  .legend-item:hover { opacity: 0.6; }
+  .legend-item.disabled { text-decoration: line-through; opacity: 0.4; }
+  
+  .legend-icon-shape {
+    width: 14px; 
+    height: 14px;
+    margin-right: 14.6px;
+    display: inline-block;
+  }
+  .legend-divider {
+    margin: 23.6px 0 14.6px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── CUSTOM PINS (SHAPES) ── */
+  .map-pin-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 24px;
+    height: 24px;
+    transform: translate(-50%, -50%); /* MapLibre anchor offset */
+  }
+  .pin-shape {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+  }
+  .pin-shape:hover {
+    transform: scale(1.618);
+  }
+
+  /* Shape definitions via clip-path */
+  .shape-square {
+    border-radius: 2px;
+  }
+  .shape-triangle {
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    border-radius: 0;
+  }
+  .shape-star {
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    border-radius: 0;
+    width: 18px; 
+    height: 18px;
+  }
+  .shape-circle {
+    border-radius: 50%;
+  }
+
+  .legend-icon-shape.shape-star {
+    width: 16px; 
+    height: 16px;
+    margin-right: 12px; 
+  }
+
+  /* ── SOUND ARCHIVE RIPPLE ANIMATION ── */
+  .pin-sound {
+    position: relative;
+  }
+  .pin-sound::before, .pin-sound::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 100%; height: 100%;
+    background-color: inherit;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+    animation: ripple 2.6s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+  }
+  .pin-sound::after {
+    animation-delay: -1.3s;
+  }
+  @keyframes ripple {
+    0% { width: 100%; height: 100%; opacity: 0.6; }
+    100% { width: 400%; height: 400%; opacity: 0; }
+  }
+
+  /* ── SLIDE-OUT SIDE PANEL ── */
+  #side-panel {
+    position: fixed;
+    /* Adjusted top to avoid covering the header (assuming ~85px header height) */
+    top: 85px; 
+    right: -38.2vw;
+    width: 38.2vw; /* Golden ratio width */
+    min-width: 350px;
+    max-width: 480px;
+    height: calc(100vh - 85px);
+    background: var(--mute-panel);
+    color: var(--mute-text);
+    border-left: var(--box-border);
+    border-top: var(--box-border); /* Top border for distinction */
+    z-index: 2000;
+    transition: right 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow-y: auto;
+    padding: 38.2px;
+    backdrop-filter: blur(12px);
+    box-shadow: -10px 0 30px rgba(0,0,0,0.05);
+  }
+  #side-panel.open {
+    right: 0;
+  }
+
+  .panel-close {
+    position: absolute;
+    top: 23.6px; right: 23.6px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-weight: bold;
+    color: inherit;
+    font-family: inherit;
+    opacity: 0.6;
+    transition: opacity 0.3s;
+  }
+  .panel-close:hover {
+    opacity: 1;
+  }
+  .panel-category {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 14.6px;
+    font-weight: bold;
+  }
+  .panel-title {
+    font-size: 2rem;
+    margin: 0 0 23.6px 0;
+    border-bottom: var(--box-border);
+    padding-bottom: 14.6px;
+  }
+  .panel-body {
+    font-size: 1rem;
+    line-height: 1.618;
+    margin-bottom: 38.2px;
+  }
+  .panel-audio-box {
+    padding: 23.6px;
+    margin-top: 23.6px;
+    background: rgba(255,255,255,0.4);
+  }
+  .panel-audio-box audio {
+    width: 100%;
+    margin-bottom: 23.6px;
+    outline: none;
+  }
+  .ledger-data {
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div id="preloader">
+  <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExYWhvbWdjNDJ6OGdzZWk4NXpjZHlwd3pwdjRlZ3BxMzJ1eXZieXhzcSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/kw0XK5ROoezOUMEnjF/giphy.gif" alt="Loading Bird" class="bird-loader-gif">
+</div>
+
+<div id="intro-overlay">
+  <div class="intro-dialog sketchy-box">
+    
+    <div class="intro-tabs-nav">
+      <button class="intro-tab-btn active" onclick="switchTab('prologue')">Prologue</button>
+      <button class="intro-tab-btn" onclick="switchTab('poem')">The Bird of Time</button>
+    </div>
+
+    <div class="intro-content-wrapper">
+      <div id="tab-prologue" class="intro-tab-content active">
+        <p><strong>The Ridge is not a range of hills. It is a spine.</strong></p>
+        <p>It is the calcified backbone of a primordial titan that fell into a dreamless sleep two billion years ago. Long before the Himalayas were a thought in the earth’s mind, this quartzite was already old. It is the first architecture of the world. Each jagged outcrop is a vertebra; each hidden cave is a lung that still breathes the cool, damp air of the first morning.</p>
+        <p>We are the ants crawling over this sleeping god. We build our nests of glass and steel against its ribs, thinking ourselves masters of the height. But the stone remembers. It remembers the weight of the first rains and the silence of the first stars. It knows that we are only a fever, a passing heat in the long, cold life of the rock.</p>
+      </div>
+
+      <div id="tab-poem" class="intro-tab-content poem-verse">
+O Bird of Time on your fruitful bough
+What are the songs you sing ? . . .
+Songs of the glory and gladness of life.
+Of poignant sorrow and passionate strife.
+And the lilting joy of the spring ;
+Of hope that sows for the years unborn.
+And faith that dreams of a tarrying morn.
+The fragrant peace of the twilight's breath.
+And the mystic silence that men call death.
+
+O Bird of Time, say where did you learn
+The changing measures you sing ? . . .
+In blowing forests and breaking tides.
+In the happy laughter of new-made brides,
+And the nests of the new-born spring ;
+In the dawn that thrills to a mother's prayer,
+And the night that shelters a heart's despair,
+In the sigh of pity, the sob of hate,
+And the pride of a soul that has conquered fate.
+
+— Sarojini Naidu
+      </div>
+    </div>
+
+    <button id="enter-btn" class="enter-btn sketchy-box">Listen to the Origins</button>
+  </div>
+</div>
+
+<div class="ln-page">
+  <div id="parchment-map" aria-label="Aravalli Ridge Interactive Map"></div>
+
+  <div class="sketch-legend sketchy-box">
+    <div class="legend-title">The Atlas Key</div>
+    
+    <div class="legend-item" onclick="toggleLayer('eco', this)">
+      <div class="legend-icon-shape shape-square" style="background: #324B3C;"></div> Ecological Green Zone
+    </div>
+    <div class="legend-item" onclick="toggleLayer('crit', this)">
+      <div class="legend-icon-shape shape-triangle" style="background: #8C3A3A;"></div> Critical Red Zone
+    </div>
+    <div class="legend-item" onclick="toggleLayer('folk', this)">
+      <div class="legend-icon-shape shape-star" style="background: #4A4059;"></div> Folklore & Legend
+    </div>
+    
+    <div class="legend-divider">Sound Archive (IUCN)</div>
+    
+    <div class="legend-item" onclick="toggleLayer('CR', this)">
+      <div class="legend-icon-shape shape-circle" style="background: #7A2B2B;"></div> Critically Endangered
+    </div>
+    <div class="legend-item" onclick="toggleLayer('EN', this)">
+      <div class="legend-icon-shape shape-circle" style="background: #A65E44;"></div> Endangered
+    </div>
+    <div class="legend-item" onclick="toggleLayer('VU', this)">
+      <div class="legend-icon-shape shape-circle" style="background: #B58E4A;"></div> Vulnerable
+    </div>
+    <div class="legend-item" onclick="toggleLayer('NT', this)">
+      <div class="legend-icon-shape shape-circle" style="background: #7B8C5C;"></div> Near Threatened
+    </div>
+    <div class="legend-item" onclick="toggleLayer('LC', this)">
+      <div class="legend-icon-shape shape-circle" style="background: #3B594C;"></div> Least Concern
+    </div>
+  </div>
+
+  <div id="side-panel" class="sketchy-box">
+    <button class="panel-close" onclick="closePanel()">X</button>
+    <div id="panel-content">
+      </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+
+<script>
+// ── INTRO / PRELOADER LOGIC ──
+document.addEventListener("DOMContentLoaded", function() {
+    const preloader = document.getElementById('preloader');
+    const overlay = document.getElementById('intro-overlay');
+    
+    // Check if page is freshly loaded/reloaded or navigated via back button
+    let isReload = false;
+    if (window.performance) {
+        const navEntries = performance.getEntriesByType("navigation");
+        if (navEntries.length > 0 && navEntries[0].type === "reload") {
+            isReload = true;
+        } else if (performance.navigation && performance.navigation.type === 1) {
+            isReload = true;
+        }
+    }
+    
+    const hasVisited = sessionStorage.getItem('dissonance_landing_visited');
+
+    if (!hasVisited || isReload) {
+        // Play Preloader
+        sessionStorage.setItem('dissonance_landing_visited', 'true');
+        setTimeout(() => {
+            preloader.style.opacity = '0';
+            setTimeout(() => {
+                preloader.style.display = 'none';
+                overlay.classList.add('active'); // Pops in blurred overlay
+            }, 1200);
+        }, 3200); // Loader duration
+    } else {
+        // Skip Preloader instantly
+        preloader.style.display = 'none';
+        overlay.classList.add('active'); 
+    }
+
+    // Tab switching inside dialog
+    window.switchTab = function(tabId) {
+        document.querySelectorAll('.intro-tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.intro-tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    };
+
+    // Enter map button
+    document.getElementById('enter-btn').addEventListener('click', function() {
+        overlay.classList.remove('active');
+        setTimeout(() => { overlay.style.display = 'none'; }, 1200);
+    });
+});
+
+// ── MAPLIBRE SETUP ──
+let map;
+let layerMarkers = {}; // Object to hold arrays of markers by category for filtering
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Initialize MapLibre Map (Note: Coordinates are [Lng, Lat])
+    map = new maplibregl.Map({
+        container: 'parchment-map',
+        style: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
+        center: [77.22, 28.48], 
+        zoom: 11,
+        attributionControl: false
+    });
+
+    // Add navigation controls to top-right
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+    // Dynamically replicate Snazzy Maps "Mute Green" Style (13209)
+    map.on('style.load', () => {
+        const layers = map.getStyle().layers;
+        layers.forEach(layer => {
+            // Water logic
+            if (layer.id.includes('water')) {
+                if (layer.type === 'fill') map.setPaintProperty(layer.id, 'fill-color', '#A8D0C6');
+                if (layer.type === 'line') map.setPaintProperty(layer.id, 'line-color', '#98C0B6');
+            } 
+            // Background logic
+            else if (layer.type === 'background') {
+                map.setPaintProperty(layer.id, 'background-color', '#E2EBE6');
+            } 
+            // Land / Buildings / POI logic
+            else if (layer.type === 'fill') {
+                map.setPaintProperty(layer.id, 'fill-color', '#E2EBE6');
+            } 
+            // Roads / Lines logic
+            else if (layer.type === 'line') {
+                map.setPaintProperty(layer.id, 'line-color', '#C1D1C8');
+            }
+        });
+    });
+
+    // Helper to generate MapLibre DOM markers with shapes
+    function addMarker(lng, lat, colorHex, isSound, categoryKey, shapeType, onClickCb) {
+        // Initialize tracking array for the category filter
+        if (!layerMarkers[categoryKey]) {
+            layerMarkers[categoryKey] = [];
+        }
+
+        const el = document.createElement('div');
+        el.className = 'map-pin-wrap';
+        
+        let pinClass = `pin-shape shape-${shapeType}`;
+        if (isSound) pinClass += ' pin-sound';
+        
+        el.innerHTML = `<div class="${pinClass}" style="background-color: ${colorHex};"></div>`;
+        
+        el.addEventListener('click', onClickCb);
+
+        // Create marker and add to map
+        const marker = new maplibregl.Marker({ element: el })
+            .setLngLat([lng, lat])
+            .addTo(map);
+
+        // Store marker for toggle feature
+        layerMarkers[categoryKey].push(marker);
+    }
+
+    // Static Nodes - Configured perfectly to the JSON Data provided
+    const STATIC_NODES = [
+        {
+            id: 'mangar-bani', layer: 'folk', label: 'Chapter I: The Silver Grove', category: 'Folklore and Legends', color: '#4A4059', lng: 77.12, lat: 28.36,
+            forensic: 'One of the last natural tropical forests in the Aravallis. Archaeological findings (2021) discovered Stone Age tools and cave paintings here estimated to be 100,000 years old.',
+            source: 'Archaeological Survey of Haryana / Mangar Eco Club Archives',
+            narrative: 'Lohan’s lineage of watchers protected the Dhau trees—silver-skinned elders that bleed dark iron when cut. The forest is not wood; it is a tectonic conversation that takes the light of those who turn its life into ash.'
+        },
+        {
+            id: 'tughlaqabad', layer: 'folk', label: 'Chapter II: The City of Thirst', category: 'Folklore and Legends', color: '#4A4059', lng: 77.26, lat: 28.51,
+            forensic: 'Built in 1321. The Sultan’s decree forced laborers to abandon the Saint’s Baoli for the fort. The resulting curse saw the city abandoned within 15 years due to water scarcity.',
+            source: 'ASI Historical Records / Medieval Chronicles of Delhi',
+            narrative: 'Ghiyas-ud-din Tughlaq built a fortress that mocked the sky, but the Ridge was thirsty. The Saint Nizamuddin dug a Baoli with love, while the Sultan built with pride. The stone refused to hold the heat of life.'
+        },
+        {
+            id: 'bhati-mines', layer: 'crit', label: 'Chapter III: The Sapphire Tear', category: 'Critical Red Zones', color: '#8C3A3A', lng: 77.21, lat: 28.43,
+            forensic: 'Deep-pit scars reaching below the water table have filled with groundwater. Environmental studies indicate heavy metal leaching and the loss of surface water recharge capacity.',
+            source: 'CGWB Pollution Reports / NGT Suo Motu Cognizance 2022',
+            narrative: 'They were mining the titan’s marrow. When the machines went silent, they left behind a landscape of scars. The mountain is bleeding a toxic blue, and it wants what was taken back. It has no more room for the living.'
+        },
+        {
+            id: 'dadam-mine', layer: 'crit', label: 'The 300-Foot Wound', category: 'Critical Red Zones', color: '#8C3A3A', lng: 75.83, lat: 28.81,
+            forensic: 'In 2022, a landslide revealed excavation reaching 800 feet, triple the legal limit. The state lost over ₹1,200 crore to illegal extraction, proving the law was just a transaction fee.',
+            source: 'NGT Committee Report (Justice Pritam Pal) / ED Investigation 2023',
+            narrative: 'A site where the law stopped at the surface. The spine of the ridge gave way to an appetite with no face. Five watchers were taken to fill the hole we had dug in its heart.'
+        },
+        {
+            id: 'sanjay-van', layer: 'eco', label: 'The Acoustic Lung', category: 'Ecological Green Zones', color: '#324B3C', lng: 77.18, lat: 28.53,
+            forensic: '784 acres of South-Central Ridge. Hosting over 200 bird species, it represents the baseline for what is being silenced as urban noise pollution expands.',
+            source: 'DDA Status Report / BNHS Bird Census',
+            narrative: 'A spine of quartzite older than the Himalayas. Here, the Dhau trees cling to the cliffs. The birds do not fly; they simply exist in the air, acting as the primary biological witness to the city\'s expansion.'
+        },
+        {
+            id: 'asola-bhatti', layer: 'eco', label: 'The Recovery Frontier', category: 'Ecological Green Zones', color: '#324B3C', lng: 77.26, lat: 28.46,
+            forensic: 'Legally protected in 1986. Recent camera trap data confirmed a resident leopard population of 12, marking a physical reclamation by apex predators.',
+            source: 'WII Leopard Wildlife Corridor Study (2024)',
+            narrative: 'A threshold where former mining pits have been reclaimed by scrub. A vital corridor where the titan still breathes the cool air of the first morning through recovered lungs.'
+        },
+        {
+            id: 'nizamuddin-baoli', layer: 'folk', label: 'The Water of Fire', category: 'Folklore and Legends', color: '#4A4059', lng: 77.24, lat: 28.59,
+            forensic: 'The only stepwell in Delhi still fed by active underground springs. De-silted to its original 80-foot depth in 2008, it remains a symbol of spiritual and hydrological resilience.',
+            source: 'Aga Khan Trust for Culture (AKTC) Archives',
+            narrative: 'When the Sultan banned oil, the Saint blessed the water to burn. It burned with a clear, white flame that smelled of jasmine and wet earth—a sacred resistance of the ridge’s waters.'
+        }
+    ];
+
+    STATIC_NODES.forEach(n => {
+        let shape = 'circle';
+        if (n.layer === 'eco') shape = 'square';
+        else if (n.layer === 'crit') shape = 'triangle';
+        else if (n.layer === 'folk') shape = 'star';
+
+        let descHtml = `<p>${n.forensic}</p><p style="font-size: 0.85rem; opacity: 0.8;"><em>Source: ${n.source}</em></p>`;
+        
+        // Render the "Read the Legend" button exclusively for Folklore zones
+        if (n.layer === 'folk') {
+            descHtml += `
+                <button class="enter-btn sketchy-box" onclick="document.getElementById('legend-text-${n.id}').style.display='block'; this.style.display='none'" style="margin-top:14.6px; padding: 8px 16px; font-size: 0.85rem;">Read the Legend</button>
+                <div id="legend-text-${n.id}" style="display:none; margin-top:14.6px; padding-top:14.6px; border-top: 1px dashed ${n.color}; font-style: italic;">
+                    <p>${n.narrative}</p>
+                </div>
+            `;
+        } else {
+            // Standard inclusion of the narrative for other zones
+            descHtml += `
+                <div style="margin-top:14.6px; padding-top:14.6px; border-top: 1px dashed ${n.color}; font-style: italic;">
+                    <p>${n.narrative}</p>
+                </div>
+            `;
+        }
+
+        addMarker(n.lng, n.lat, n.color, false, n.layer, shape, () => openPanel(n.category, n.label, n.color, descHtml, null));
+    });
+
+    // Dynamic Sound Pins recolored for Mute Green contrast
+    const IUCN_COLORS = { 'CR': '#7A2B2B', 'EN': '#A65E44', 'VU': '#B58E4A', 'NT': '#7B8C5C', 'LC': '#3B594C' };
+
+    fetch('/api/landing-records')
+        .then(res => res.json())
+        .then(records => {
+            records.forEach(rec => {
+                let status = rec.iucn || 'LC';
+                let color = IUCN_COLORS[status] || '#444';
+                
+                let audioHtml = `
+                    <div class="panel-audio-box sketchy-box">
+                        <audio controls controlsList="nodownload">
+                            <source src="/audio/${rec.file_path}" type="audio/mpeg">
+                        </audio>
+                        <div class="ledger-data">
+                            <span>Witnesses: <strong id="sign-count-${rec.id}" style="color:${color}">${rec.care_count}</strong></span>
+                            <button class="enter-btn sketchy-box" onclick="signWitnessLedger(${rec.id})" style="padding: 6px 12px; font-size: 0.8rem;">Sign Ledger</button>
+                        </div>
+                    </div>
+                `;
+
+                let desc = `<p><strong>Location:</strong> ${rec.location_name}<br><strong>Recorded:</strong> ${rec.timestamp}</p>`;
+                
+                // Sound archives always default to 'circle' shape with isSound=true
+                addMarker(rec.lng, rec.lat, color, true, status, 'circle', () => openPanel(`Sound Archive · ${status}`, rec.species_common, color, desc, audioHtml));
+            });
+        }).catch(err => console.log(err.message));
+});
+
+// ── UI INTERACTIONS ──
+
+window.toggleLayer = function(layerId, element) {
+    element.classList.toggle('disabled');
+    const isHidden = element.classList.contains('disabled');
+    
+    // Add or remove markers based on toggle state
+    if (layerMarkers[layerId]) {
+        layerMarkers[layerId].forEach(marker => {
+            if (isHidden) {
+                marker.remove();
+            } else {
+                marker.addTo(map);
+            }
+        });
+    }
+};
+
+window.openPanel = function(category, title, color, descHtml, audioHtml) {
+    const panel = document.getElementById('side-panel');
+    const content = document.getElementById('panel-content');
+    
+    content.innerHTML = `
+        <div class="panel-category" style="color:${color}">${category}</div>
+        <h2 class="panel-title">${title}</h2>
+        <div class="panel-body">${descHtml}</div>
+        ${audioHtml ? audioHtml : ''}
+    `;
+    panel.classList.add('open');
+};
+
+window.closePanel = function() {
+    document.getElementById('side-panel').classList.remove('open');
+};
+
+window.signWitnessLedger = function(entryId) {
+    fetch('/care/sign/' + entryId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location_verified: true })
+    })
+    .then(r => { if(r.status === 401) { alert("Please log in to sign the ledger."); window.location.href='/login'; } return r.json(); })
+    .then(data => {
+        if(data && data.status === 'signed') {
+            alert("Signature anchored.\\nToken: " + data.care_token);
+            let countEl = document.getElementById('sign-count-' + entryId);
+            if(countEl) countEl.innerText = data.count;
+        } else if(data && data.status === 'already_signed') {
+            alert("You have already witnessed this recording.");
+        }
+    }).catch(e => console.error(e));
+};
+</script>
+{% endblock %}

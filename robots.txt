@@ -1,0 +1,47 @@
+# Mapping Dissonance — Acoustic Archive for Ecological Research
+# Non-commercial artistic archive. Akademie Schloss Solitude Web Residency, 2026.
+# https://github.com/beatnyk/mapping-dissonance
+
+# ── Block commercial AI training scrapers ──────────────────────────────────
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+# ── All other crawlers: protect audio files and private routes ──────────────
+User-agent: *
+# Never index uploaded audio files — they belong to contributors
+Disallow: /static/uploads/
+Disallow: /audio/
+# Private routes
+Disallow: /upload
+Disallow: /register
+Disallow: /login
+Disallow: /logout
+Disallow: /care/sign/
+# Public pages
+Allow: /
+Allow: /mapping-dissonance
+Allow: /about

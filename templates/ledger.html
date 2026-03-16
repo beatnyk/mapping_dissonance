@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Care Ledger — Mapping Dissonance{% endblock %}
+
+{% block content %}
+<div class="ledger-wrap">
+
+  <div class="ledger-head">
+    <div class="ledger-head-left">
+      <span class="ledger-title">Care Ledger</span>
+      <span class="ledger-subtitle">Append-only witness register · Algorand-ready</span>
+    </div>
+    <span class="ledger-tally">{{ records|length }} record{{ 's' if records|length != 1 }}</span>
+  </div>
+
+  <div class="ledger-preamble">
+    Each row is a SHA-256 witness token anchored to a species recording.
+    User identities are one-way hashed (SHA-256, 16 chars). ◆ after a hash indicates location-verified.
+    This register is public, append-only, and un-editable.
+  </div>
+
+  <div class="ledger-body">
+    {% if records %}
+      {% for r in records %}
+      <div class="ledger-row">
+        <span class="lr-ts">{{ r.timestamp }}</span>
+        <span class="lr-sep">|</span>
+        <span class="lr-user">{{ r.user_hash }}{% if r.location_verified %} ◆{% endif %}</span>
+        <span class="lr-sep">|</span>
+        <span class="lr-species">SIGNED FOR: {{ r.species }} @ {{ r.location }}</span>
+        <span class="lr-sep">|</span>
+        <span class="lr-token">CARE_TOKEN_ID: {{ r.token }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="ledger-empty">No signatures recorded yet. The ledger is empty.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

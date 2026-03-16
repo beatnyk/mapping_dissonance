@@ -1,0 +1,609 @@
+{% extends "base.html" %}
+{% block title %}About — Mapping Dissonance{% endblock %}
+
+{% block content %}
+<div class="abt-page" id="abt-page">
+
+  <!-- Three.js ambient particle canvas -->
+  <canvas id="abt-canvas"></canvas>
+
+  <!-- ── FILING-CABINET TAB NAVIGATION ── -->
+  <nav class="abt-nav" id="abt-nav">
+    <button class="abt-tab active" data-tab="abt-project" data-idx="0">The Project</button>
+    <button class="abt-tab" data-tab="abt-ridge" data-idx="1">Aravalli Ridge</button>
+    <button class="abt-tab" data-tab="abt-fieldnotes" data-idx="2">Field Notes</button>
+    <button class="abt-tab" data-tab="abt-abeyance" data-idx="3">The 100M Rule</button>
+    <button class="abt-tab" data-tab="abt-business" data-idx="4">Business as Usual</button>
+  </nav>
+
+  <!-- ── PANELS WRAP ── -->
+  <div class="abt-panels-wrap" id="abt-panels-wrap">
+
+    <!-- ════ PANEL 1 — THE PROJECT ════ -->
+    <div class="abt-panel active" id="abt-project">
+      <div class="abt-inner">
+        <h1 class="abt-heading">Mapping<br>Dissonance</h1>
+
+        <div class="abt-row">
+          <div class="abt-label">The Work</div>
+          <div class="abt-body">
+            <p><strong>Mapping Dissonance</strong> is an interdisciplinary sound research project documenting the friction between urban expansion and avian ecological survival in Delhi. The project records bird calls across the Delhi Ridge and the broader Aravalli landscape, anchors each recording to a blockchain-structured ledger, and makes the resulting archive available as an open witness to biodiversity in a habitat whose legal protection is — as of March 2026 — unresolved.</p>
+            <p>The title names a double condition. There is the acoustic dissonance of the city itself: the spectral overlap between birdsong and road noise, between the call of a koel and the compression of a construction drill. And there is the political dissonance of a forest held simultaneously in protection and suspension — a habitat that exists in law, in ecology, and in a Supreme Court order that has been stayed but not withdrawn.</p>
+            <p>The archive is not a catalogue. It is a form of witness. Each recorded entry is a timestamp, a coordinate, a species, and a hash — a fixed point in a chain of evidence. The care interface allows local community members to sign their acknowledgment of a recording, embedding a second kind of witness alongside the machine.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Methodology</div>
+          <div class="abt-body">
+            <p>Field recordings are made using a portable stereo microphone at sites across the Delhi Ridge (Northern, Central, Southern, and Mehrauli segments) and in the Mangar Bani and Damdama Lake zones of the Haryana Aravalli. Recordings are submitted to BirdNET-Analyzer — a neural network trained on the Cornell Lab of Ornithology's Xeno-canto dataset — for automated species identification. Each detection above a confidence threshold of 0.7 is logged with a GPS coordinate and a time-of-day stamp.</p>
+            <p>The blockchain layer uses a sequential SHA-256 chaining structure: each new entry hashes together the previous entry's hash, the species name, and the filename. This creates a tamper-evident ledger. The system is architecturally prepared for migration to Algorand, a proof-of-stake blockchain with a near-zero carbon footprint. No live blockchain deployment is made during the residency period; the chain is built and verified locally.</p>
+            <p>The Care Token system generates a unique cryptographic token for each community witness signature. These tokens are included in the ledger record, creating an auditable second layer of provenance alongside the machine-generated species identification.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">The Artist</div>
+          <div class="abt-body">
+            <p>An interdisciplinary sound artist whose practice spans field recording, live-coding, and experimental electronic composition. The work moves between performance and installation, using research — ecological, legal, historical — as both material and method. Previous projects have engaged with the sonic geography of urban infrastructure, the acoustics of disappearing spaces, and the political life of frequency. The practice is rooted in the belief that listening is a political act, and that the archive is never neutral.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Residency</div>
+          <div class="abt-body">
+            <p>Developed during the <strong>Polymorphic Futures</strong> web residency program at <strong>Akademie Schloss Solitude</strong>, Stuttgart. The residency provided the framework to explore how emerging technologies — decentralised ledgers, AI acoustic classification, open geodata — can be repurposed for ecological witnessing and community-led documentation. The question animating the residency: what does it mean to build an archive in a habitat that may not survive the legal interval of its making?</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">The Care Interface</div>
+          <div class="abt-body">
+            <p>Alongside AI analysis, the archive includes a community witness system. Logged-in users who are local to a recorded habitat can sign a statement of acknowledgment for each soundscape: <em>"I am local to this area. I have heard these sounds. I acknowledge the urgency of its conservation."</em> Each signature generates a unique cryptographic token anchored to that recording's ledger entry — a Care Token — which becomes part of the immutable record.</p>
+            <p>The system is built around the principle that machine identification is insufficient witness. A neural network can name the bird. It cannot testify to having heard it. Community signatures supply that second register of knowledge — embodied, local, human — without which the archive remains merely technical.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Contribute</div>
+          <div class="abt-body">
+            <p>The archive is open. If you have recorded bird calls in Delhi — using a field recorder, a smartphone, or the Merlin Bird ID app — you can add them to the ledger. <a href="/register">Create an account</a> to contribute. All recordings remain the property of their contributors. No audio is used for AI training. User-Agent: GPTBot is denied in robots.txt.</p>
+          </div>
+        </div>
+
+        <div class="abt-disclaimer">
+          <p>Mapping Dissonance is a non-commercial artistic research archive produced in the context of the Akademie Schloss Solitude web residency, 2026. News and data are aggregated via public RSS feeds and open APIs for ecological study. Bird call data sourced from the Cornell Lab of Ornithology Xeno-canto dataset via BirdNET-Analyzer. IUCN status data sourced via the IUCN Red List API. This project exists for the purposes of ecological research and social critique.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PANEL 2 — ARAVALLI RIDGE ════ -->
+    <div class="abt-panel" id="abt-ridge">
+      <div class="abt-inner">
+        <h1 class="abt-heading">Aravalli<br>Ridge</h1>
+
+        <div class="abt-row">
+          <div class="abt-label">Geology</div>
+          <div class="abt-body">
+            <p>The Aravalli Range is among the oldest geological formations on Earth. Formed during the Precambrian era, its parent rocks date to approximately 3.5 billion years ago — older than most life on land. The range runs for roughly 800 kilometres from the Rann of Kutch in Gujarat, through Rajasthan, and terminates in a narrow northern spur that passes through Delhi before disappearing beneath the alluvial plains of Haryana. What remains in Delhi is the Delhi Ridge: a discontinuous line of quartzite and schist hillocks, seldom more than 80 metres above the surrounding plain, covered in dry tropical thorn forest.</p>
+            <p>Its age is not merely geological fact. It is argument. These are not hills that formed alongside the Himalayas and can be understood in terms of current tectonic activity. They are remnant erosional features — what remains after billions of years of weathering. They cannot be restored. They can only be lost.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">The Delhi Ridge</div>
+          <div class="abt-body">
+            <p>Within Delhi, the Aravalli is present as four segments of the Ridge: Northern (spanning from Wazirabad to Haiderpur), Central (the Kamla Nehru Ridge, the primary lung of North Delhi), Southern (stretching through Sanjay Van, Asola Bhatti, and Tughlaqabad), and South-Central (the Mehrauli Archaeological Park zone). Together, these cover approximately 7,784 hectares of designated forest land — representing one of the largest urban green corridors in any Asian megacity.</p>
+            <p>The Ridge functions as Delhi's primary biodiversity corridor, linking fragmented patches of habitat across a city of 20 million people. Its dry deciduous scrub forest — dominated by Ber (<em>Ziziphus mauritiana</em>), Dhak (<em>Butea monosperma</em>), and Vilayati Kikar (<em>Prosopis juliflora</em>) — provides nesting, foraging, and overwintering habitat for over 200 resident and migratory bird species, as well as jackals, nilgai, and the occasional leopard in the southern segments.</p>
+            <p>The Aravalli Biodiversity Park in Gurugram — technically outside Delhi's administrative boundary but ecologically continuous with the Ridge — covers a further 380 hectares and has been the site of active ecological restoration since 2010.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Indigenous Use</div>
+          <div class="abt-body">
+            <p>The Ridge and the broader Aravalli have been inhabited and managed by Gujjar and Mewati pastoral communities for centuries. Gujjar communities maintained traditional grazing routes through the scrub forest, and their seasonal presence contributed to the mosaic habitat structure — patches of open grassland interspersed with dense thorn scrub — that many ground-nesting species depend on. The designation of the Ridge as a Reserved Forest under British colonial administration in 1913, and the subsequent exclusion of Gujjar communities from traditional use areas, marked the beginning of a governance model that treated the Ridge as a resource to be administered rather than a commons to be negotiated.</p>
+            <p>The tension between administrative protection and lived use has never been resolved. Gujjar families continue to live in villages adjacent to the Southern Ridge. Their ecological knowledge — which plant species indicate water, which bird calls signal the approach of predators, where the soil conditions shift — constitutes a form of environmental monitoring that predates the instruments of the archive by generations.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Colonial Classification</div>
+          <div class="abt-body">
+            <p>The British colonial survey of the Aravalli introduced a classification problem that has never fully been resolved: what exactly counts as "forest"? Colonial administrators designated portions of the Ridge as Reserved Forest under the Indian Forest Act of 1878, but the categorisation was incomplete, inconsistent across administrative boundaries, and driven by the extractive logic of colonial forestry — timber yields, grazing revenue — rather than ecological function. Revenue land, agricultural land, scrub wasteland, and forest land were classified under different administrative regimes, often adjacently, with the boundaries drawn more for administrative convenience than ecological coherence.</p>
+            <p>This inherited categorisation problem is the direct ancestor of the 2025 Supreme Court dispute over what constitutes "forest" in the Aravalli. The colonial survey created the ambiguity. The post-independence state reproduced it. The question of the 100-metre altitude threshold is, at its root, a question about what kind of evidence — ecological, administrative, topographic — should be used to determine what counts as forest when the original records were never adequate to begin with.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Urbanisation Pressure</div>
+          <div class="abt-body">
+            <p>Delhi's population grew from roughly 1.4 million at independence in 1947 to an estimated 33 million in 2026. The Ridge has been continuously encroached upon throughout this period. The Northern Ridge lost significant area to institutional development — the Delhi University campus, the Hindu Rao Hospital complex, the Flagstaff area — in the 1950s and 1960s. The Southern Ridge has faced sustained pressure from quarrying (particularly in the Asola and Bhatti zones), illegal colonisation, and the expansion of peripheral settlements.</p>
+            <p>Gurugram's rapid commercial development from the 1990s onward consumed large sections of the Haryana Aravalli, replacing scrub forest with gated residential compounds, tech parks, and shopping malls. The Faridabad industrial corridor to the south has similarly encroached on ridge land, with quarrying operations running in areas the Supreme Court had specifically ordered protected. The pattern is consistent: legal protection is declared; enforcement is nominal; encroachment proceeds; fines are levied; operations continue. The ridge shrinks.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PANEL 3 — FIELD NOTES ════ -->
+    <div class="abt-panel" id="abt-fieldnotes">
+      <div class="abt-inner">
+        <h1 class="abt-heading">Field<br>Notes</h1>
+
+        <div class="abt-row">
+          <div class="abt-label">Jerdon, 1862</div>
+          <div class="abt-body">
+            <p>Before the phonograph, before magnetic tape, before the neural networks that now identify a bird from a two-second spectrogram — there was only the human ear and the imprecise grammar of adjectives. Thomas C. Jerdon, a British army surgeon stationed in India, spent three decades attempting to transcribe the calls of the subcontinent's birds into what he called <em>"vocal syllables"</em>: phonetic approximations written into field journals. The sound vanished the moment it was produced. Only the description remained.</p>
+            <p><em>"In giving the notes of birds,"</em> Jerdon wrote in his introduction to <em>The Birds of India</em> (Calcutta, 1862), <em>"I have endeavoured as much as possible to render these in a manner intelligible to the general reader, by the use of syllables expressive of the sound."</em> The project was doomed to incompleteness by its medium. What he produced was not a recording but a wound — an absence shaped like sound. His syllables are not the call; they are the call's shadow on the page.</p>
+            <p>Mapping Dissonance begins from Jerdon's problem. The question he could not solve — how to make a sound persist — has been technically resolved by the recording apparatus. But the question beneath his question remains: what is the status of a call that has no one left to hear it? The archive records presence. Its implicit subject is disappearance.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Local Nomenclature</div>
+          <div class="abt-body">
+            <p>Every bird in this archive carries at least three names: its English common name — a colonial administrative convenience, often derived from morphology or habitat; its Linnaean binomial — a classificatory system that produces the fiction of universal legibility at the cost of all local particularity; and its names in Hindi, Rajasthani, and Tamil — each encoding a different ecological relationship, a different history of encounter, a different theory of what the animal is.</p>
+            <p>The <em>Koel</em> (Hindi) and the <em>Kuil</em> (Tamil) are the same bird: the Asian Koel, <em>Eudynamys scolopaceus</em>. But they are not the same name. One is embedded in the literary tradition of the North Indian plains, where the koel's call announces the monsoon and figures throughout classical poetry as an emblem of longing. The other belongs to a separate literary ecology, a different seasonal register, a different grammar of metaphor. The Linnaean name disregards both and records only the fact of the brood-parasitic reproductive strategy. The archive tries to hold all three registers open simultaneously, without collapsing the difference.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Species Register</div>
+          <div class="abt-body">
+            <p>The following species have been recorded or are known to inhabit the Delhi Ridge and Aravalli corridor. Listed by IUCN Red List status, from most to least threatened. Local names given as Hindi / Rajasthani / Tamil. Status current as of IUCN Red List v2024-1.</p>
+          </div>
+        </div>
+
+        {% for status, label in [('CR','Critically Endangered'), ('EN','Endangered'), ('VU','Vulnerable'), ('NT','Near Threatened'), ('LC','Least Concern')] %}
+          {% set group = birds | selectattr('iucn', 'equalto', status) | list %}
+          {% if group %}
+          <div class="bn-group">
+            <div class="bn-group-head">
+              <span class="iucn-badge iucn-{{ status }}">{{ status }}</span>
+              <span class="bn-group-label">{{ label }}</span>
+              <span class="bn-group-count">{{ group | length }} species</span>
+            </div>
+            <div class="bn-table">
+              {% for b in group %}
+              <div class="bn-row">
+                <span class="bn-common">{{ b.common }}</span>
+                <span class="bn-sci">{{ b.scientific }}</span>
+                <span class="bn-local">{{ b.hindi }} / {{ b.rajasthani }} / {{ b.tamil }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ════ PANEL 4 — THE 100M RULE ════ -->
+    <div class="abt-panel" id="abt-abeyance">
+      <div class="abt-inner">
+        <h1 class="abt-heading">The 100M<br>Rule</h1>
+
+        <div class="abt-row">
+          <div class="abt-label">Current Status</div>
+          <div class="abt-body">
+            <p>As of March 2026, the Supreme Court order proposing to reclassify Aravalli land below 100 metres above mean sea level as "non-forest" remains <strong>in abeyance</strong>. The December 2024 stay is in force. No new date has been set for hearing of the main matter. The forest is protected by an interim order that can be lifted at the next substantive hearing. This is the condition in which this archive is being made.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">The Order</div>
+          <div class="abt-body">
+            <p>In November 2025, the Supreme Court of India — in the context of long-running hearings on the classification of Aravalli land in Haryana and Rajasthan — circulated a draft proposal to define "forest" in the Aravalli context according to an altitude threshold: any land in the range lying below 100 metres above mean sea level would be reclassified as non-forest and would cease to be protected under the Forest Conservation Act, 1980. The proposal was advanced as a means of resolving the administrative ambiguity inherited from colonial classification — providing a clear, measurable, defensible criterion for what constitutes forest in a landscape where the boundaries have been disputed for decades.</p>
+            <p>The ecological consequences of applying this threshold would be severe. The Delhi Ridge rises to a maximum of roughly 130 metres. The threshold of 100 metres would effectively reclassify approximately 90% of the Ridge as non-forest land, removing its protection under the Forest Conservation Act overnight. The lower slopes — the transition zones between scrub forest and the surrounding urban fabric — are precisely the areas most critical for ground-nesting birds, for the movement of mammals between forest patches, and for the root systems that hold the quartzite hillocks together. The flat base of every hill would become legally available for development.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">The Legal Frame</div>
+          <div class="abt-body">
+            <p>The Forest Conservation Act, 1980, prohibits the diversion of forest land for non-forest purposes without prior approval of the central government. Its application depends on a prior question: what counts as forest? The Act does not define the term. That definitional gap has been filled, unevenly, by a sequence of Supreme Court orders stretching back to the T.N. Godavarman Thirumulpad case (W.P. 202/1995), in which the court adopted a dictionary definition of "forest" — any land that, regardless of ownership, classification, or revenue status, bears the ecological characteristics of forest — and asserted that such land is protected regardless of whether it appears in official forest records.</p>
+            <p>The Godavarman order created the most expansive framework for forest protection in Indian legal history. It also created an administrative nightmare: if any ecologically forested land is protected, irrespective of its classification, then the boundaries of what is protected are permanently contested. The 100-metre altitude proposal is, in this context, an attempt to resolve that contest by replacing ecological criteria with a topographic criterion. The simplicity of the metric is its appeal. Its relationship to ecology is approximate at best and misleading at worst: altitude does not determine forest quality, biodiversity value, or ecological function.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">The December Stay</div>
+          <div class="abt-body">
+            <p>In December 2024, responding to urgent applications from environmental lawyers, civil society organisations, and state governments, the Supreme Court stayed its own draft proposal pending further hearings. The stay was accompanied by an interim protection order maintaining the status quo — meaning that existing forest protection continues to apply to all land currently classified as forest or deemed forest in the Aravalli, regardless of altitude.</p>
+            <p>The stay does not resolve the underlying legal question. It suspends it. The court has not withdrawn the altitude proposal. It has not indicated that it will not ultimately adopt some version of it. The forest is protected by interim order, pending the outcome of proceedings that may, when finally decided, remove that protection retroactively. Everything built during this interval of protection — every nesting pair, every root system, every entry in this archive — exists in legal suspension.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">What Is at Stake</div>
+          <div class="abt-body">
+            <p>The lower slopes and base areas of the Aravalli — the zones that would be reclassified under the 100-metre threshold — are among the ecologically richest parts of the range. Ground-nesting birds, including the Grey Francolin, the Black Francolin, the Indian Spotted Eagle, and the Egyptian Vulture, depend on the scrub and grassland mosaic of the lower slopes. The transition zones between rock and flat ground carry the highest root density, the richest invertebrate populations, and the most complex soil-water interactions of the landscape.</p>
+            <p>Mining companies with existing or pending lease applications have prepared documentation anticipating the reclassification. Should the altitude threshold be formally adopted, applications for quarrying licences on what is currently protected forest land could be filed within weeks. The machinery is ready. It is waiting for a legal instrument that, as of March 2026, remains in suspension.</p>
+            <p>This archive is not made in opposition to that legal instrument. It is made in the interval before it is decided. It records what is present now, in the condition of abeyance — in case, later, someone needs evidence that these things were here.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Timeline</div>
+          <div class="abt-body">
+            <div class="abt-timeline">
+              <div class="abt-tl-row"><span class="abt-tl-date">1995</span><span class="abt-tl-event">T.N. Godavarman Thirumulpad vs Union of India filed — W.P. 202/1995. The case that will define "forest" expansively and create the legal framework for Aravalli protection.</span></div>
+              <div class="abt-tl-row"><span class="abt-tl-date">2002</span><span class="abt-tl-event">SC issues comprehensive Aravalli mining ban. States instructed to identify and close all illegal mines. Compliance is partial and uneven.</span></div>
+              <div class="abt-tl-row"><span class="abt-tl-date">2009</span><span class="abt-tl-event">SC reaffirms mining ban, designates specific areas as ecologically sensitive. NGT established as a specialist environmental tribunal to handle enforcement.</span></div>
+              <div class="abt-tl-row"><span class="abt-tl-date">Jul 2022</span><span class="abt-tl-event">Dadam Mine landslide. Eleven killed. Excavation depth found to be triple the statutory limit. NGT levies ₹7.5 crore in damages.</span></div>
+              <div class="abt-tl-row"><span class="abt-tl-date">Nov 2025</span><span class="abt-tl-event">SC circulates draft proposal: land below 100m ASL to be reclassified as non-forest. Would remove protection from ~90% of the Delhi Ridge.</span></div>
+              <div class="abt-tl-row"><span class="abt-tl-date">Dec 2024</span><span class="abt-tl-event">SC stays the 100m proposal pending further hearings. Interim protection order issued maintaining status quo.</span></div>
+              <div class="abt-tl-row"><span class="abt-tl-date">Mar 2026</span><span class="abt-tl-event">Status: in abeyance. No hearing date set. Forest protected by interim order. This archive is being made.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PANEL 5 — BUSINESS AS USUAL ════ -->
+    <div class="abt-panel" id="abt-business">
+      <div class="abt-inner">
+        <h1 class="abt-heading">Business<br>as Usual</h1>
+
+        <div class="abt-row">
+          <div class="abt-label">Preamble</div>
+          <div class="abt-body">
+            <p>The legal history of the Aravalli is a ledger of fines paid and operations continued; of orders issued and compliance deferred; of eleven men dead in a mine that was operating at triple its permitted depth, and of the fine for that death subsequently stayed by the court that levied it. The following cases are documented entries. They are not complete. They are a sample from a record that runs for decades.</p>
+            <p>The consistent pattern is this: environmental law in the Aravalli has functioned as a price list. The fine is the cost of production. Once paid, the operation resumes. The legal apparatus does not stop the extraction — it schedules it.</p>
+          </div>
+        </div>
+
+        <div class="abt-case">
+          <div class="abt-case-meta">
+            <span class="abt-case-id">W.P. 202/1995</span>
+            <span class="abt-case-court">Supreme Court of India</span>
+            <span class="abt-case-fine">Ongoing</span>
+            <span class="legal-status-badge badge-continue">Active — No Closure</span>
+          </div>
+          <div class="abt-case-body">
+            <h3>T.N. Godavarman Thirumulpad vs. Union of India — The Case That Never Ended</h3>
+            <p>Filed in 1995 as a routine petition about illegal tree-felling in Tamil Nadu, the Godavarman case was expanded by the Supreme Court into a comprehensive ongoing proceeding on forest governance across India. The court appointed a Central Empowered Committee (CEC) to investigate violations and report back; it issued a blanket order in 1996 that no state government could divert forest land without Supreme Court approval; and it adopted a definition of "forest" so broad that it encompassed any land bearing the ecological characteristics of forest, regardless of its administrative classification.</p>
+            <p>The case is still open as of 2026. The Godavarman proceedings are the legal frame within which every subsequent Aravalli order — including the 100-metre altitude proposal — has been issued. The same proceeding that established the broadest protection for Indian forests is now the proceeding within which a proposal to narrow that protection drastically is being considered. The architecture of the case has been turned against its original intention. This is not corruption. It is the predictable operation of a legal system that provides the instruments for both protection and reclassification, and cannot prevent the latter from using the former as its vehicle.</p>
+          </div>
+        </div>
+
+        <div class="abt-case">
+          <div class="abt-case-meta">
+            <span class="abt-case-id">SC Order 2002</span>
+            <span class="abt-case-court">Supreme Court of India</span>
+            <span class="abt-case-fine">—</span>
+            <span class="legal-status-badge badge-continue">Routinely Evaded</span>
+          </div>
+          <div class="abt-case-body">
+            <h3>The Aravalli Mining Ban — An Order Without Enforcement</h3>
+            <p>In 2002, the Supreme Court issued a comprehensive ban on mining in the Aravalli Range in states that did not have approved working plans for their forest land. Both Haryana and Rajasthan were found to be in violation. The court's order was unambiguous: all mining in the designated Aravalli areas was to cease immediately.</p>
+            <p>It did not cease. State governments issued fresh leases by reclassifying mining operations as "quarrying" rather than "mining" — a definitional distinction without ecological content. Revenue records were amended to reclassify forest land as wasteland. Companies paid registration fees for activities that were formally prohibited. The ban was structural — it applied to a category of land — and the response was structural: reclassify the land so that it no longer falls within the category. The 2002 order was reaffirmed in 2009 with additional specificity. The evasions adapted.</p>
+          </div>
+        </div>
+
+        <div class="abt-case">
+          <div class="abt-case-meta">
+            <span class="abt-case-id">NGT Case 362/2022</span>
+            <span class="abt-case-court">National Green Tribunal</span>
+            <span class="abt-case-fine">₹2.8 Crore</span>
+            <span class="legal-status-badge badge-continue">Mining Continued</span>
+          </div>
+          <div class="abt-case-body">
+            <h3>Aravalli Citizens vs. Union of India — The Tariff Schedule</h3>
+            <p>In 2022, a coalition of Aravalli residents and environmental lawyers filed NGT Case 362/2022 against mining operations within the Aravalli Biodiversity Park buffer zone in Haryana. The NGT investigated, found sustained violations, and levied ₹2.8 crore in compensatory fines. The Tribunal's own judgment used language that documented the nature of the problem precisely: companies, the NGT noted, had been paying fines as "a price for legalising their illegalities."</p>
+            <p>The fine was paid. The mining continued. The ₹2.8 crore was not a sanction — it was a tariff schedule for the right to continue operating in a protected zone. The case did not close the mines. It priced their operation. The distinction matters: a sanction is designed to stop a behaviour; a tariff is a means of regulating behaviour that will continue. The NGT in 2022 was, in effect, acting as a pricing authority for environmental destruction. It did so within the constraints of the law as written, which provided for fines but not for the kind of enforcement that would make those fines genuinely deterrent.</p>
+          </div>
+        </div>
+
+        <div class="abt-case">
+          <div class="abt-case-meta">
+            <span class="abt-case-id">NGT Case 01/2022</span>
+            <span class="abt-case-court">National Green Tribunal</span>
+            <span class="abt-case-fine">₹7.5 Crore</span>
+            <span class="legal-status-badge badge-stayed">Stayed by SC (Dec 2024)</span>
+          </div>
+          <div class="abt-case-body">
+            <h3>The Dadam Landslide — Gravity as Evidence</h3>
+            <p>On 17 July 2022, at approximately 11:40 AM, a section of the working face of the Dadam Limestone Mine in Bhiwani district, Haryana, collapsed without warning. Eleven workers were killed. The mine's excavation depth at the point of failure was found, on investigation, to have reached 300 feet below the surrounding ground level — triple the 100-foot statutory limit specified in the mine's working plan. The Haryana government's own investigation confirmed that the mine had been operating in systematic violation of its licence conditions for an extended period.</p>
+            <p>The NGT levied ₹7.5 crore in compensatory environmental damages against the mine operators and the Haryana government for regulatory failure. It also issued specific directions for independent structural audits of all active quarry faces in the Aravalli zone. In December 2024, the Supreme Court stayed the Dadam fine pending the broader Aravalli proceedings. The deterrent — already insufficient to prevent the deaths — was removed at the precise moment it was most needed, as those broader proceedings entered their most consequential phase. The eleven dead received no stay on their condition.</p>
+            <p>There is a legal principle at work here that is worth naming: the higher court, in staying the lower court's penalty, was not adjudicating the guilt of the mine operators. It was managing the procedure of the appeal. The procedure is neutral. Its neutrality produces consequences that are not.</p>
+          </div>
+        </div>
+
+        <div class="abt-case">
+          <div class="abt-case-meta">
+            <span class="abt-case-id">SEIAA Leases 2019–23</span>
+            <span class="abt-case-court">Haryana State EIA Authority</span>
+            <span class="abt-case-fine">₹847 Cr revenue</span>
+            <span class="legal-status-badge badge-continue">Leases Renewed</span>
+          </div>
+          <div class="abt-case-body">
+            <h3>The Rajasthan-Haryana Quarry Corridor — Leases Renewed While Appeals Pending</h3>
+            <p>Between 2019 and 2023, the Haryana State Environmental Impact Assessment Authority renewed 312 quarrying leases in districts bordering the Aravalli range — Nuh, Mahendragarh, Rewari, and Faridabad — including in areas that had been identified by the CEC (in the Godavarman proceedings) as ecologically sensitive zones. The combined revenue from these leases over the four-year period was approximately ₹847 crore. Appeals against individual lease renewals were pending before the NGT during the same period in which the renewals were processed.</p>
+            <p>The mechanism is straightforward: lease renewal applications are processed by state-level authorities. NGT orders and SC directions apply to the category of "forest land." If the state revenue records classify the land as "non-forest wasteland" — even if ecologically the land functions as forest, supports the same species as adjacent designated forest, and has been the subject of CEC recommendations for protection — then neither the NGT nor the SC ban applies. The lease is legal. The destruction is permitted. The distinction between the land that is protected and the land that is not is a distinction in the revenue record, not in the ecology. The birds do not read the revenue record.</p>
+          </div>
+        </div>
+
+        <div class="abt-case">
+          <div class="abt-case-meta">
+            <span class="abt-case-id">DDJAY 2016–2023</span>
+            <span class="abt-case-court">Haryana Urban Development Authority</span>
+            <span class="abt-case-fine">—</span>
+            <span class="legal-status-badge badge-continue">400+ Projects Licensed</span>
+          </div>
+          <div class="abt-case-body">
+            <h3>Deen Dayal Jan Awas Yojana — Affordable Housing in an Ecologically Sensitive Zone</h3>
+            <p>The Deen Dayal Jan Awas Yojana (DDJAY) was introduced by the Haryana government in 2016 as an affordable housing scheme, providing licensed developers with a streamlined approval process for residential projects of up to 5 acres on the periphery of urban areas. By 2023, over 400 projects had been approved under the scheme in Gurugram, Faridabad, and Nuh — the districts most directly adjacent to the Haryana Aravalli.</p>
+            <p>A significant portion of these projects were sited on land classified in state revenue records as "non-forest" — but identified by the Forest Survey of India's 2019 assessment as "deemed forest" qualifying for protection under the Godavarman framework. The state government contested the FSI assessment. The CEC noted the discrepancy. The projects proceeded. By 2023, many were in advanced stages of construction. The legal status of the land beneath them remained disputed. Construction is, in this context, a form of adjudication: it creates facts that complicate restoration orders and render protective orders practically inoperable.</p>
+          </div>
+        </div>
+
+        <div class="abt-case">
+          <div class="abt-case-meta">
+            <span class="abt-case-id">NGT 136/2023</span>
+            <span class="abt-case-court">National Green Tribunal</span>
+            <span class="abt-case-fine">Stop-Work Order</span>
+            <span class="legal-status-badge badge-stayed">Implemented After 7 Months</span>
+          </div>
+          <div class="abt-case-body">
+            <h3>Bandhwari Landfill Expansion — A Stop-Work Order That Stopped Nothing</h3>
+            <p>The Bandhwari solid waste processing facility, operated by the Municipal Corporation of Gurugram, has been the subject of environmental litigation for over a decade. Situated at the edge of the Aravalli Biodiversity Park, the facility handles approximately 1,800 tonnes of mixed municipal waste per day. In 2023, a fresh application was submitted to expand the facility's footprint into an adjacent 14-hectare parcel that had been identified as Aravalli buffer zone.</p>
+            <p>The NGT issued a stop-work order in October 2023, citing the proximity of the proposed expansion to designated biodiversity park land and the absence of an adequate Environmental Impact Assessment. The stop-work order was not implemented for seven months. Construction activity on site continued through the period during which the order was technically in force. The NGT does not have a direct enforcement arm — it issues orders to state authorities, who implement them. When state authorities do not implement them, the remedy is a further order. The cycle is not broken; it is extended.</p>
+            <p>The expansion was eventually halted in May 2024. By that point, site preparation work on approximately 4 hectares of buffer zone had been completed. The NGT noted the non-compliance in its subsequent order. It did not levy fines for the months of non-compliance. Noting and levying are different things.</p>
+          </div>
+        </div>
+
+        <div class="abt-case">
+          <div class="abt-case-meta">
+            <span class="abt-case-id">CEC Application 2024</span>
+            <span class="abt-case-court">Central Empowered Committee</span>
+            <span class="abt-case-fine">—</span>
+            <span class="legal-status-badge badge-abeyance">Pending Review</span>
+          </div>
+          <div class="abt-case-body">
+            <h3>Mangar Bani Boundary Reduction — 31 Hectares for a Road</h3>
+            <p>In 2024, the Haryana government submitted an application to the Central Empowered Committee for approval to reduce the notified boundary of the Mangar Bani biodiversity zone by 31 hectares. The stated purpose was the widening of a road connecting Gurugram and Faridabad — a project that had been under consideration since 2018 and had previously been rejected on ecological grounds. The application was submitted as a boundary modification request rather than a forest diversion, on the grounds that the specific parcel lay outside the formally notified forest boundary.</p>
+            <p>Mangar Bani is among the most ecologically significant sites in the Delhi-NCR region. It is one of the last intact patches of dry tropical thorn forest in the area, supports the highest bird diversity of any surveyed site in the Delhi Ridge corridor, and is traditionally managed by the Gujjar community of Mangar village as a sacred grove — a <em>deva-van</em>, a forest that belongs to no one and therefore to everyone. The CEC application is pending as of March 2026. No decision has been issued. The road project has not been cancelled.</p>
+            <p>This case is different from the others in one respect: the mechanism here is not a violation of an order, but the legal reconfiguration of the boundary such that no order will apply. This is the administrative equivalent of moving the goalpost. The forest does not move. The boundary does.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /.abt-panels-wrap -->
+
+  <!-- React progress nav mount -->
+  <div id="abt-prog-mount"></div>
+
+</div><!-- /.abt-page -->
+
+<!-- ── DEPENDENCIES ────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.min.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<!-- ── THREE.JS — PARTICLE FIELD ──────────────────────── -->
+<script>
+(function () {
+  var canvas = document.getElementById('abt-canvas');
+  if (!canvas || typeof THREE === 'undefined') return;
+
+  var W = window.innerWidth, H = window.innerHeight;
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  renderer.setClearColor(0x000000, 0);
+
+  var scene  = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(65, W / H, 0.1, 500);
+  camera.position.z = 6;
+
+  // Particle cloud — 320 drifting points
+  var N   = 320;
+  var pos = new Float32Array(N * 3);
+  var vel = [];
+  for (var i = 0; i < N; i++) {
+    pos[i * 3]     = (Math.random() - 0.5) * 22;
+    pos[i * 3 + 1] = (Math.random() - 0.5) * 13;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 6;
+    vel.push({ x: (Math.random() - 0.5) * 0.0024, y: (Math.random() - 0.5) * 0.0016 });
+  }
+
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+  function getColor() {
+    return document.documentElement.getAttribute('data-theme') === 'dark' ? 0xffffff : 0x111111;
+  }
+  function getOpacity() {
+    return document.documentElement.getAttribute('data-theme') === 'dark' ? 0.22 : 0.10;
+  }
+
+  var mat = new THREE.PointsMaterial({ size: 0.05, color: getColor(), transparent: true, opacity: getOpacity(), sizeAttenuation: true });
+  var pts = new THREE.Points(geo, mat);
+  scene.add(pts);
+
+  // Theme reactivity
+  window.updateAbtTheme = function () {
+    mat.color.setHex(getColor());
+    mat.opacity = getOpacity();
+  };
+  var themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) themeBtn.addEventListener('click', function () { setTimeout(window.updateAbtTheme, 50); });
+
+  // Mouse parallax
+  var mouse = { x: 0, y: 0 };
+  document.addEventListener('mousemove', function (e) {
+    mouse.x = (e.clientX / window.innerWidth  - 0.5) * 0.6;
+    mouse.y = (e.clientY / window.innerHeight - 0.5) * 0.4;
+  });
+
+  window.addEventListener('resize', function () {
+    W = window.innerWidth; H = window.innerHeight;
+    renderer.setSize(W, H);
+    camera.aspect = W / H;
+    camera.updateProjectionMatrix();
+  });
+
+  var t = 0;
+  (function animate() {
+    requestAnimationFrame(animate);
+    t += 0.001;
+    var p = geo.attributes.position.array;
+    for (var i = 0; i < N; i++) {
+      p[i * 3]     += vel[i].x + Math.sin(t + i) * 0.0004;
+      p[i * 3 + 1] += vel[i].y + Math.cos(t + i * 1.3) * 0.0003;
+      if (p[i * 3] >  11) p[i * 3] = -11;
+      if (p[i * 3] < -11) p[i * 3] =  11;
+      if (p[i * 3 + 1] >  6.5) p[i * 3 + 1] = -6.5;
+      if (p[i * 3 + 1] < -6.5) p[i * 3 + 1] =  6.5;
+    }
+    geo.attributes.position.needsUpdate = true;
+    camera.position.x += (mouse.x - camera.position.x) * 0.018;
+    camera.position.y += (-mouse.y - camera.position.y) * 0.018;
+    camera.lookAt(scene.position);
+    renderer.render(scene, camera);
+  })();
+})();
+</script>
+
+<!-- ── REACT — SECTION PROGRESS DOTS ─────────────────── -->
+<script>
+(function () {
+  if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') return;
+  var h = React.createElement;
+
+  var LABELS = ['The Project', 'Aravalli Ridge', 'Field Notes', 'The 100M Rule', 'Business as Usual'];
+
+  function ProgNav() {
+    var state = React.useState(0);
+    var current = state[0], setCurrent = state[1];
+
+    React.useEffect(function () {
+      function handler(e) { setCurrent(e.detail); }
+      window.addEventListener('abt-section', handler);
+      return function () { window.removeEventListener('abt-section', handler); };
+    }, []);
+
+    function goTo(i) {
+      var tab = document.querySelector('[data-idx="' + i + '"]');
+      if (tab) tab.click();
+    }
+
+    return h('nav', { className: 'prog-nav', 'aria-label': 'Section navigation' },
+      LABELS.map(function (label, i) {
+        return h('button', {
+          key: i,
+          className: 'prog-dot' + (i === current ? ' active' : ''),
+          onClick: function () { goTo(i); },
+          title: label
+        },
+          h('span', { className: 'prog-tooltip' }, label)
+        );
+      })
+    );
+  }
+
+  var mount = document.getElementById('abt-prog-mount');
+  if (mount) ReactDOM.createRoot(mount).render(h(ProgNav, null));
+})();
+</script>
+
+<!-- ── SECTION CONTROLLER ────────────────────────────── -->
+<script>
+(function () {
+  var tabs    = Array.from(document.querySelectorAll('.abt-tab'));
+  var panels  = Array.from(document.querySelectorAll('.abt-panel'));
+  var wrap    = document.getElementById('abt-panels-wrap');
+  var current = 0;
+  var locked  = false;
+
+  // Stagger-animate content items in a panel
+  function animateIn(panel) {
+    var items = panel.querySelectorAll('.abt-heading, .abt-row, .abt-case, .bn-group, .abt-disclaimer');
+    items.forEach(function (el, i) {
+      el.style.opacity   = '0';
+      el.style.transform = 'translateY(28px)';
+      el.style.transition = 'none';
+      setTimeout(function () {
+        el.style.transition = 'opacity 0.55s ease, transform 0.55s cubic-bezier(0.16,1,0.3,1)';
+        el.style.opacity   = '1';
+        el.style.transform = 'translateY(0)';
+      }, 80 + i * 55);
+    });
+  }
+
+  function activate(idx, skipScroll) {
+    if (idx === current && panels[idx].classList.contains('active')) return;
+    var prev = current;
+    current  = idx;
+
+    tabs.forEach(function (t, i)   { t.classList.toggle('active', i === idx); });
+    panels.forEach(function (p, i) {
+      if (i === prev && i !== idx) p.classList.add('exit');
+      p.classList.toggle('active', i === idx);
+      if (i !== idx) {
+        setTimeout(function () { p.classList.remove('exit'); }, 650);
+      }
+    });
+
+    // Reset panel scroll
+    if (!skipScroll && panels[idx]) panels[idx].scrollTop = 0;
+
+    animateIn(panels[idx]);
+
+    // Notify React
+    window.dispatchEvent(new CustomEvent('abt-section', { detail: idx }));
+  }
+
+  // Tab click
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { activate(i); });
+  });
+
+  // Wheel — advance when panel is at top or bottom edge
+  if (wrap) {
+    var wheelCooldown = false;
+    wrap.addEventListener('wheel', function (e) {
+      if (wheelCooldown) return;
+      var panel = panels[current];
+      if (!panel) return;
+      var atBottom = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 4;
+      var atTop    = panel.scrollTop <= 0;
+
+      if (e.deltaY > 20 && atBottom && current < panels.length - 1) {
+        e.preventDefault();
+        activate(current + 1);
+        wheelCooldown = true;
+        setTimeout(function () { wheelCooldown = false; }, 900);
+      } else if (e.deltaY < -20 && atTop && current > 0) {
+        e.preventDefault();
+        activate(current - 1);
+        wheelCooldown = true;
+        setTimeout(function () { wheelCooldown = false; }, 900);
+      }
+    }, { passive: false });
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      if (current < panels.length - 1) activate(current + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      if (current > 0) activate(current - 1);
+    }
+  });
+
+  // Hash routing from landing page
+  var hashMap = { 'field-notes': 2, 'abeyance': 3, 'business': 4 };
+  var hash    = window.location.hash.replace('#', '');
+  if (hash && hashMap[hash] !== undefined) {
+    activate(hashMap[hash], true);
+  } else {
+    activate(0, true);
+  }
+})();
+</script>
+
+{% endblock %}

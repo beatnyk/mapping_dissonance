@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Mapping Dissonance{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <!-- Theme init: prevents flash of wrong theme on load -->
+  <script>
+    (function() {
+      var t = localStorage.getItem('md-theme');
+      if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    })();
+  </script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav class="site-nav">
+    <a href="/" class="nav-logo">Mapping Dissonance</a>
+    <div class="nav-links">
+      <a href="/mapping-dissonance" class="nav-cta">Enter the Archive &rarr;</a>
+      <a href="/bird-list">Bird List</a>
+      <a href="/ledger">Ledger</a>
+      <a href="/bibliography">Bibliography</a>
+      <a href="/about">About</a>
+      {% if current_user.is_authenticated %}
+        <span class="nav-user">{{ current_user.username }}</span>
+        <a href="/logout">Sign out</a>
+      {% else %}
+        <a href="/login">Contribute</a>
+      {% endif %}
+      <button id="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode">&#9680;</button>
+    </div>
+  </nav>
+  {% block content %}{% endblock %}
+  <script>
+    function toggleTheme() {
+      var html = document.documentElement;
+      var isLight = html.getAttribute('data-theme') === 'light';
+      if (isLight) {
+        html.removeAttribute('data-theme');
+        localStorage.setItem('md-theme', 'dark');
+      } else {
+        html.setAttribute('data-theme', 'light');
+        localStorage.setItem('md-theme', 'light');
+      }
+    }
+  </script>
+</body>
+</html>
