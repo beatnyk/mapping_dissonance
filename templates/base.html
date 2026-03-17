@@ -11,8 +11,8 @@
   <!-- Theme init: prevents flash of wrong theme on load -->
   <script>
     (function() {
-      var t = localStorage.getItem('md-theme');
-      if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      if (localStorage.getItem('md-theme') === 'dark')
+        document.documentElement.setAttribute('data-theme', 'dark');
     })();
   </script>
   {% block head %}{% endblock %}
@@ -27,7 +27,7 @@
       <a href="/bibliography">Bibliography</a>
       <a href="/about">About</a>
       {% if current_user.is_authenticated %}
-        <span class="nav-user">{{ current_user.username }}</span>
+        <span class="nav-user">{{ current_user.email }}</span>
         <a href="/logout">Sign out</a>
       {% else %}
         <a href="/login">Contribute</a>
@@ -39,13 +39,12 @@
   <script>
     function toggleTheme() {
       var html = document.documentElement;
-      var isLight = html.getAttribute('data-theme') === 'light';
-      if (isLight) {
+      if (html.getAttribute('data-theme') === 'dark') {
         html.removeAttribute('data-theme');
-        localStorage.setItem('md-theme', 'dark');
-      } else {
-        html.setAttribute('data-theme', 'light');
         localStorage.setItem('md-theme', 'light');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        localStorage.setItem('md-theme', 'dark');
       }
     }
   </script>

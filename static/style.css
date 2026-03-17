@@ -17,15 +17,15 @@
 ═══════════════════════════════════════════════════════════ */
 
 :root {
-  --bg:        #000000;
-  --bg-alt:    #0d0d0d;
-  --fg:        #ffffff;
-  --muted:     rgba(255, 255, 255, 0.55);
-  --accent:    #ffffff;
-  --accent-dk: #ffffff;
-  --hairline:  rgba(255, 255, 255, 0.10);
+  --bg:        #f5f2eb;
+  --bg-alt:    #ede9e0;
+  --fg:        #0a0a0a;
+  --muted:     rgba(10, 10, 10, 0.50);
+  --accent:    #0a0a0a;
+  --accent-dk: #0a0a0a;
+  --hairline:  rgba(0, 0, 0, 0.10);
   --red:       #cc0000;
-  --vivid:     #3377FF;
+  --vivid:     #0a0a0a;
 
   --font:         'Space Mono', monospace;
   --font-display: 'Heming', monospace;
@@ -49,15 +49,14 @@
   --nav-h: 52px;
 }
 
-/* Dark mode */
-html[data-theme="light"] {
-  --bg:        #ffffff;
-  --bg-alt:    #f0f0f0;
-  --fg:        #000000;
-  --muted:     rgba(0, 0, 0, 0.55);
-  --accent:    #000000;
-  --accent-dk: #000000;
-  --hairline:  rgba(0, 0, 0, 0.10);
+html[data-theme="dark"] {
+  --bg:        #0a0a0a;
+  --bg-alt:    #141414;
+  --fg:        #f5f2eb;
+  --muted:     rgba(245, 242, 235, 0.50);
+  --accent:    #f5f2eb;
+  --accent-dk: #f5f2eb;
+  --hairline:  rgba(245, 242, 235, 0.12);
 }
 
 /* ─────────────────────────────────────────

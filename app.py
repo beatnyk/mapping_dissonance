@@ -1,4 +1,6 @@
 import os, hashlib, requests, json
+from dotenv import load_dotenv
+load_dotenv()
 import feedparser
 import concurrent.futures
 from datetime import datetime, timedelta, date, timezone
@@ -7,6 +9,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+
 try:
     from birdnetlib import Recording
     from birdnetlib.analyzer import Analyzer
@@ -21,14 +25,23 @@ try:
 except Exception:
     NewsApiClient = None
 
+try:
+    import algosdk
+    from algosdk import mnemonic as algomnemo, transaction as algotxn
+    from algosdk.v2client import algod as algoclient
+    ALGORAND_AVAILABLE = True
+except Exception:
+    ALGORAND_AVAILABLE = False
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ecology-blockchain-2026')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'DATABASE_URL',
     f"sqlite:///{os.path.join(app.instance_path, 'dissonance_ledger.db')}"
 )
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+app.config['MAX_CONTENT_LENGTH'] = 15 * 1024 * 1024  # 15 MB upload limit
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -36,12 +49,44 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# ── ALGORAND ──────────────────────────────────────────────────────────────────
+
+ALGOD_URL   = "https://testnet-api.algonode.cloud"
+ALGOD_TOKEN = ""  # AlgoNode public node — no token required
+
+def _algorand_notarise(note_text):
+    """Submit a 0-ALGO self-payment on Algorand Testnet; return TXID or None."""
+    if not ALGORAND_AVAILABLE:
+        return None
+    mnemonic_phrase = os.environ.get('ALGORAND_MNEMONIC', '')
+    if not mnemonic_phrase:
+        return None
+    try:
+        private_key = algomnemo.to_private_key(mnemonic_phrase)
+        address     = algosdk.account.address_from_private_key(private_key)
+        client      = algoclient.AlgodClient(ALGOD_TOKEN, ALGOD_URL)
+        params      = client.suggested_params()
+        txn = algotxn.PaymentTxn(
+            sender=address,
+            sp=params,
+            receiver=address,
+            amt=0,
+            note=note_text.encode('utf-8'),
+        )
+        signed = txn.sign(private_key)
+        txid   = client.send_transaction(signed)
+        algotxn.wait_for_confirmation(client, txid, wait_rounds=4)
+        return txid
+    except Exception as e:
+        print(f"[WARNING] Algorand notarisation failed: {e}")
+        return None
+
 # ── MODELS ────────────────────────────────────────────────────────────────────
 
 class User(UserMixin, db.Model):
     id       = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True)
-    password = db.Column(db.String(100))
+    email    = db.Column(db.String(254), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)
 
 class ArchiveEntry(db.Model):
     id                    = db.Column(db.Integer, primary_key=True)
@@ -61,11 +106,11 @@ class ArchiveEntry(db.Model):
     care_signatures       = db.relationship('CareSignature', backref='entry', lazy=True)
 
 class CareSignature(db.Model):
-    """Community acknowledgment — mocked for Algorand-ready structure."""
+    """Community acknowledgment — Algorand Testnet TXID or SHA-256 fallback."""
     id                = db.Column(db.Integer, primary_key=True)
     entry_id          = db.Column(db.Integer, db.ForeignKey('archive_entry.id'), nullable=False)
     user_id           = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    care_token        = db.Column(db.String(64), nullable=False)   # SHA-256 witness token
+    care_token        = db.Column(db.String(100), nullable=False)  # Algorand TXID (52 chars) or SHA-256 (64 chars)
     statement         = db.Column(db.Text)
     timestamp         = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     location_verified = db.Column(db.Boolean, default=False)
@@ -235,7 +280,6 @@ def landing():
 def mapping_dissonance():
     entries = ArchiveEntry.query.order_by(ArchiveEntry.timestamp.desc()).all()
 
-    # One query for all care counts
     care_counts = dict(
         db.session.query(CareSignature.entry_id, func.count(CareSignature.id))
         .group_by(CareSignature.entry_id)
@@ -287,10 +331,21 @@ def care_sign(entry_id):
 
     body         = request.get_json(silent=True) or {}
     loc_verified = bool(body.get('location_verified', False))
+    ts           = datetime.now(timezone.utc).isoformat()
 
-    # Generate witness token (Algorand-ready: hash of entry + user + timestamp)
-    token_src = f"{entry_id}:{current_user.id}:{datetime.now(timezone.utc).isoformat()}"
-    token = hashlib.sha256(token_src.encode()).hexdigest()
+    # Build the note that goes on-chain
+    note = (
+        f"mapping-dissonance:"
+        f"entry={entry_id}:user={current_user.id}:ts={ts}:"
+        f"{CARE_STATEMENT}"
+    )
+
+    # Attempt Algorand Testnet notarisation; fall back to SHA-256 witness token
+    txid = _algorand_notarise(note)
+    if txid:
+        token = txid
+    else:
+        token = hashlib.sha256(f"{entry_id}:{current_user.id}:{ts}".encode()).hexdigest()
 
     sig = CareSignature(
         entry_id=entry_id,
@@ -345,7 +400,7 @@ def ledger():
 
     records = []
     for sig, entry, user in rows:
-        user_hash = hashlib.sha256(user.username.encode()).hexdigest()[:16]
+        user_hash = hashlib.sha256(user.email.encode()).hexdigest()[:16]
         records.append({
             'timestamp':         sig.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') if sig.timestamp else '—',
             'user_hash':         user_hash,
@@ -420,7 +475,7 @@ def get_context_news():
 
 @app.route('/get_iucn_status/<sci_name>')
 def get_iucn_status(sci_name):
-    token = 'Vkkhj6JS79gDMKW7iRc33aF45k2fZAnpTdXe'
+    token = os.environ.get('IUCN_TOKEN', '')
     try:
         url = f"https://api.iucnredlist.org/api/v4/taxa/scientific_name/{sci_name.replace(' ', '%20')}"
         res = requests.get(url, headers={'Authorization': f'Bearer {token}'}).json()
@@ -443,7 +498,7 @@ def upload():
     rec_date_str = request.form.get('recording_date', '').strip()
     rec_date = date.fromisoformat(rec_date_str) if rec_date_str else None
 
-    filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
+    filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{secure_filename(file.filename)}"
     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(path)
 
@@ -481,7 +536,7 @@ def serve_audio(filename):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form['username']).first()
+        user = User.query.filter_by(email=request.form['email'].strip().lower()).first()
         if user and check_password_hash(user.password, request.form['password']):
             login_user(user, remember=True)
             return redirect(url_for('mapping_dissonance'))
@@ -490,8 +545,9 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        email     = request.form['email'].strip().lower()
         hashed_pw = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
-        db.session.add(User(username=request.form['username'], password=hashed_pw))
+        db.session.add(User(email=email, password=hashed_pw))
         db.session.commit()
         return redirect(url_for('login'))
     return render_template('register.html')
@@ -502,14 +558,12 @@ _IUCN_LABEL = {5: 'CR', 4: 'EN', 3: 'VU', 2: 'NT', 1: 'LC'}
 
 @app.route('/api/landing-records')
 def landing_records():
-    """Return un-clustered ArchiveEntry records for the parchment map."""
     entries = (ArchiveEntry.query
             .filter(ArchiveEntry.lat.isnot(None), ArchiveEntry.lng.isnot(None))
             .order_by(ArchiveEntry.timestamp.desc())
             .limit(200)
             .all())
 
-    # Fetch all care counts efficiently in one query
     care_counts = dict(
         db.session.query(CareSignature.entry_id, func.count(CareSignature.id))
         .group_by(CareSignature.entry_id)
@@ -529,12 +583,11 @@ def landing_records():
             'care_count': care_counts.get(e.id, 0),
             'iucn': _BIRD_IUCN.get(e.species_common, 'LC')
         })
-    
+
     return jsonify(records)
 
 @app.route('/api/recording-pins')
 def recording_pins():
-    """Return geolocated ArchiveEntry clusters for the landing map."""
     rows = (ArchiveEntry.query
             .filter(ArchiveEntry.lat.isnot(None), ArchiveEntry.lng.isnot(None))
             .with_entities(
@@ -547,7 +600,6 @@ def recording_pins():
             .limit(200)
             .all())
 
-    # Cluster by location_name — merge points within ~500m
     clusters = {}
     for r in rows:
         key = r.location_name or 'field-{:.3f}-{:.3f}'.format(r.lat, r.lng)
