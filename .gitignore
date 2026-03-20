@@ -9,3 +9,4 @@ instance/
 static/uploads/*
 !static/uploads/.gitkeep
 *.log
+DEPLOY.md
