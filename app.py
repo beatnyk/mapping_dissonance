@@ -1,4 +1,4 @@
-import os, hashlib, requests, json
+import os, hashlib, requests, json, time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -916,10 +916,24 @@ def ledger():
 
 # ── NEWS ──────────────────────────────────────────────────────────────────────
 
+_news_cache: dict = {}
+_NEWS_CACHE_TTL = 1800  # 30 minutes
+
+
+def _cache_and_return(key, payload):
+    _news_cache[key] = {"ts": time.time(), "data": payload}
+    return jsonify(payload)
+
 
 @app.route("/get_context_news")
 def get_context_news():
     location = request.args.get("location", "")
+    cache_key = location.strip().lower()
+
+    cached = _news_cache.get(cache_key)
+    if cached and (time.time() - cached["ts"]) < _NEWS_CACHE_TTL:
+        return jsonify(cached["data"])
+
     kws = _loc_keywords(location) if location else []
 
     # TIER 1 — Curated Indian environmental RSS
@@ -937,7 +951,7 @@ def get_context_news():
                 a.pop("_score", None)
             seen = set()
             deduped = [a for a in hits if not (a["url"] in seen or seen.add(a["url"]))]
-            return jsonify({"articles": deduped[:6], "_tier": 1})
+            return _cache_and_return(cache_key, {"articles": deduped[:6], "_tier": 1})
 
     # TIER 2 — GDELT (India-filtered, free)
     try:
@@ -960,20 +974,19 @@ def get_context_news():
         )
         df = GdeltDoc().article_search(f)
         if not df.empty:
-            return jsonify(
-                {
-                    "articles": [
-                        {
-                            "title": r["title"],
-                            "url": r["url"],
-                            "source": {"name": r["domain"]},
-                            "publishedAt": str(r["seendate"]),
-                        }
-                        for _, r in df.iterrows()
-                    ][:6],
-                    "_tier": 2,
-                }
-            )
+            payload = {
+                "articles": [
+                    {
+                        "title": r["title"],
+                        "url": r["url"],
+                        "source": {"name": r["domain"]},
+                        "publishedAt": str(r["seendate"]),
+                    }
+                    for _, r in df.iterrows()
+                ][:6],
+                "_tier": 2,
+            }
+            return _cache_and_return(cache_key, payload)
     except Exception:
         pass
 
@@ -1005,9 +1018,9 @@ def get_context_news():
                 page_size=6,
             )
         data["_tier"] = 3
-        return jsonify(data)
+        return _cache_and_return(cache_key, data)
     except Exception:
-        return jsonify({"articles": [], "_tier": 0})
+        return _cache_and_return(cache_key, {"articles": [], "_tier": 0})
 
 
 @app.route("/get_iucn_status/<sci_name>")
