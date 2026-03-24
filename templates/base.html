@@ -22,19 +22,19 @@
 </head>
 <body>
   <nav class="site-nav">
-    <a href="/" class="nav-logo">Mapping Dissonance</a>
+    <a href="{{ url_for('landing') }}" class="nav-logo">Mapping Dissonance</a>
     <div class="nav-links">
-      <a href="/mapping-dissonance" class="nav-cta">The Archive &rarr;</a>
-      <a href="/bird-list">Bird List</a>
-      <a href="/ledger">Ledger</a>
-      <a href="/bibliography">Bibliography</a>
-      <a href="/about">About</a>
+      <a href="{{ url_for('mapping_dissonance') }}" class="nav-cta">The Archive &rarr;</a>
+      <a href="{{ url_for('bird_list') }}">Bird List</a>
+      <a href="{{ url_for('ledger') }}">Ledger</a>
+      <a href="{{ url_for('bibliography') }}">Bibliography</a>
+      <a href="{{ url_for('about') }}">About</a>
       <a href="{{ url_for('static', filename='WPMD.pdf') }}" target="_blank" rel="noopener">Whitepaper</a>
       {% if current_user.is_authenticated %}
         <span class="nav-user">{{ current_user.email }}</span>
-        <a href="/logout">Sign out</a>
+        <a href="{{ url_for('logout') }}">Sign out</a>
       {% else %}
-        <a href="/login">Contribute</a>
+        <a href="{{ url_for('login') }}">Contribute</a>
       {% endif %}
       <button id="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode">&#9680;</button>
     </div>

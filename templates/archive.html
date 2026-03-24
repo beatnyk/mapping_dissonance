@@ -624,7 +624,7 @@
               <div><span class="care-receipt-label">Transaction ID</span><code id="care-txid-{{ entry.id }}" class="care-receipt-val"></code></div>
               <div><span class="care-receipt-label">Care Ledger ID</span><code id="care-lid-{{ entry.id }}" class="care-receipt-val"></code></div>
             </div>
-            <a href="/ledger" class="care-receipt-btn sketchy-box">View Ledger →</a>
+            <a href="{{ url_for('ledger') }}" class="care-receipt-btn sketchy-box">View Ledger →</a>
           </div>
 
           <div class="news-box sketchy-box" id="news-box-{{ entry.id }}">
@@ -718,7 +718,7 @@
               <div><span class="witness-receipt-label">Witness Token</span><code id="witness-token-{{ fe.id }}" class="witness-receipt-val"></code></div>
               <div><span class="witness-receipt-label">Ledger ID</span><code id="witness-lid-{{ fe.id }}" class="witness-receipt-val"></code></div>
             </div>
-            <a href="/ledger" class="witness-receipt-btn sketchy-box">View Ledger →</a>
+            <a href="{{ url_for('ledger') }}" class="witness-receipt-btn sketchy-box">View Ledger →</a>
           </div>
 
           <div class="nearby-box sketchy-box" id="nearby-sounds-{{ fe.id }}" style="display:none"></div>
@@ -960,7 +960,7 @@ document.addEventListener("DOMContentLoaded", function() {
   // ── News fetch (sound entries) ───────────────────────────────────────────────
   const uniqueLocations = [...new Set(entriesData.map(r => r.location_name).filter(Boolean))];
   if (uniqueLocations.length > 0) {
-    fetch('/get_context_news_batch', {
+    fetch('{{ url_for("get_context_news_batch") }}', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
       body: JSON.stringify({ locations: uniqueLocations })
@@ -995,7 +995,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // ── Sound witness signing ──────────────────────────────────────────────────────
 window.signWitnessLedger = function(entryId) {
-  fetch('/care/sign/' + entryId, {
+  const baseUrl = '{{ url_for("care_status", entry_id=0) }}'.replace('/0', '');
+  fetch(baseUrl + '/sign/' + entryId, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
     body: JSON.stringify({ location_verified: true })
@@ -1003,7 +1004,7 @@ window.signWitnessLedger = function(entryId) {
   .then(r => {
     if (r.status === 401) {
       alert("The ledger requires a witness identity. Please log in.");
-      window.location.href = '/login';
+      window.location.href = '{{ url_for("login") }}';
       return null;
     }
     return r.json();
@@ -1102,14 +1103,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── Folklore witness signing ───────────────────────────────────────────────────
 window.signFolkloreWitness = function(entryId) {
-  fetch('/folklore/witness/' + entryId, {
+  const baseUrl = '{{ url_for("folklore_witness", entry_id=0) }}'.replace('/0', '');
+  fetch(baseUrl + '/' + entryId, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() }
   })
   .then(r => {
     if (r.status === 401) {
       alert("The ledger requires a witness identity. Please log in.");
-      window.location.href = '/login';
+      window.location.href = '{{ url_for("login") }}';
       return null;
     }
     return r.json();

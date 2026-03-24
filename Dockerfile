@@ -10,6 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+
+# FIX: Force-install a compatible NumPy version before the requirements file
+RUN pip install --no-cache-dir "numpy<2.0"
+
+# Install the rest of the requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Apply tflite_runtime shim for Python 3.12 (ai-edge-litert compatibility)

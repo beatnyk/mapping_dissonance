@@ -704,7 +704,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Dynamic Sound Pins
     const IUCN_COLORS = { 'CR': '#E60003', 'EN': '#FF5500', 'VU': '#FFCC00', 'NT': '#00AAEE', 'LC': '#00BB55' };
 
-    fetch('/api/landing-records')
+    fetch('{{ url_for("landing_records") }}')
         .then(res => res.json())
         .then(records => {
             records.forEach(rec => {
@@ -714,7 +714,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 let audioHtml = `
                     <div class="panel-audio-box sketchy-box">
                         <audio controls controlsList="nodownload">
-                            <source src="/audio/${rec.file_path}" type="audio/mpeg">
+                            <source src="{{ url_for('serve_audio', filename='') }}${rec.file_path}" type="audio/mpeg">
                         </audio>
                         <div class="ledger-data">
                             <span>Witnesses: <strong id="sign-count-${rec.id}" style="color:${color}">${rec.care_count}</strong></span>
@@ -730,7 +730,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(err => console.log(err.message));
 
     // Dynamic Story Pins from folklore ledger
-    fetch('/api/folklore-pins')
+    fetch('{{ url_for("api_folklore_pins") }}')
         .then(res => res.json())
         .then(stories => {
             stories.forEach(story => {
@@ -803,12 +803,14 @@ window.closePanel = function() {
 };
 
 window.signWitnessLedger = function(entryId) {
-    fetch('/care/sign/' + entryId, {
+    // We can use a template string with url_for by leaving the ID out
+    const baseUrl = '{{ url_for("care_status", entry_id=0) }}'.replace('/0', '');
+    fetch(baseUrl + '/sign/' + entryId, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ location_verified: true })
     })
-    .then(r => { if(r.status === 401) { alert("Please log in to sign the ledger."); window.location.href='/login'; } return r.json(); })
+    .then(r => { if(r.status === 401) { alert("Please log in to sign the ledger."); window.location.href='{{ url_for("login") }}'; } return r.json(); })
     .then(data => {
         if(data && data.status === 'signed') {
             alert("Signature anchored.\\nToken: " + data.care_token);
