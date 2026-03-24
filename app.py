@@ -189,7 +189,7 @@ class ArchiveEntry(db.Model):
     prev_hash = db.Column(db.String(64))
     current_hash = db.Column(db.String(64), unique=True)
     iucn_status = db.Column(db.String(10), default="LC")
-    care_signatures = db.relationship("CareSignature", backref="entry", lazy=True)
+    care_signatures = db.relationship("CareSignature", backref="entry", lazy=True, cascade="all, delete-orphan")
 
 
 class CareSignature(db.Model):
@@ -205,6 +205,7 @@ class CareSignature(db.Model):
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     location_verified = db.Column(db.Boolean, default=False)
     __table_args__ = (db.UniqueConstraint("entry_id", "user_id"),)
+    transaction_logs = db.relationship("UserTransactionLog", backref="care_signature", lazy=True, cascade="all, delete-orphan")
 
 
 class UserTransactionLog(db.Model):
@@ -230,7 +231,7 @@ class FolkloreEntry(db.Model):
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     prev_hash = db.Column(db.String(64))
     current_hash = db.Column(db.String(64), unique=True)
-    witnesses = db.relationship("FolkloreWitness", backref="folklore_entry", lazy=True)
+    witnesses = db.relationship("FolkloreWitness", backref="folklore_entry", lazy=True, cascade="all, delete-orphan")
 
 
 class FolkloreWitness(db.Model):
@@ -1541,6 +1542,7 @@ with app.app_context():
     unknown_entries = ArchiveEntry.query.filter(
         (ArchiveEntry.species_common == "Unknown") | (ArchiveEntry.species_common == None)
     ).all()
+    _evict_locs = {e.location_name.strip().lower() for e in unknown_entries if e.location_name}
     for _e in unknown_entries:
         if _e.file_path:
             _fp = os.path.join(app.config["UPLOAD_FOLDER"], _e.file_path)
@@ -1552,7 +1554,6 @@ with app.app_context():
     if unknown_entries:
         db.session.commit()
         # Evict news cache entries for affected locations
-        _evict_locs = {_e.location_name.strip().lower() for _e in unknown_entries if _e.location_name}
         for _loc in _evict_locs:
             _news_cache.pop(_loc, None)
 
