@@ -29,6 +29,7 @@
       <a href="/ledger">Ledger</a>
       <a href="/bibliography">Bibliography</a>
       <a href="/about">About</a>
+      <a href="{{ url_for('static', filename='WPMD.pdf') }}" target="_blank" rel="noopener">Whitepaper</a>
       {% if current_user.is_authenticated %}
         <span class="nav-user">{{ current_user.email }}</span>
         <a href="/logout">Sign out</a>
