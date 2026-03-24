@@ -6,8 +6,11 @@
   <title>{% block title %}Mapping Dissonance{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet"></noscript>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <!-- CSRF token for JS fetch() POST requests -->
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <!-- Theme init: prevents flash of wrong theme on load -->
   <script>
     (function() {
@@ -21,7 +24,7 @@
   <nav class="site-nav">
     <a href="/" class="nav-logo">Mapping Dissonance</a>
     <div class="nav-links">
-      <a href="/mapping-dissonance" class="nav-cta">Enter the Archive &rarr;</a>
+      <a href="/mapping-dissonance" class="nav-cta">The Archive &rarr;</a>
       <a href="/bird-list">Bird List</a>
       <a href="/ledger">Ledger</a>
       <a href="/bibliography">Bibliography</a>

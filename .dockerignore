@@ -1,8 +1,28 @@
+# Python
+.venv/
 venv/
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+
+# Local DB & uploads (replaced by volume mounts in prod)
 instance/
-static/uploads/
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Secrets — never bake into image
 .env
+
+# Version control
 .git/
+.gitignore
+
+# Editor / OS
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# Docs (not needed at runtime)
+*.md

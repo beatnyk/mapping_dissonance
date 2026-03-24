@@ -1,4 +1,4 @@
-import os, hashlib, requests, json, time
+import os, hashlib, requests, time, logging
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,7 +15,7 @@ from flask import (
     send_from_directory,
 )
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func
+from sqlalchemy import func, text
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -26,6 +26,14 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+
+# ── LOGGING ───────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("mapping_dissonance")
 
 try:
     from birdnetlib import Recording
@@ -38,9 +46,10 @@ except Exception:
     BIRDNET_AVAILABLE = False
 
 try:
-    from newsapi import NewsApiClient
+    from flask_compress import Compress as FlaskCompress
 except Exception:
-    NewsApiClient = None
+    FlaskCompress = None
+
 
 try:
     import algosdk
@@ -51,21 +60,72 @@ try:
 except Exception:
     ALGORAND_AVAILABLE = False
 
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+    SENTRY_AVAILABLE = True
+except Exception:
+    SENTRY_AVAILABLE = False
+
+try:
+    from flask_wtf.csrf import CSRFProtect
+    CSRF_AVAILABLE = True
+except Exception:
+    CSRFProtect = None
+    CSRF_AVAILABLE = False
+
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+    LIMITER_AVAILABLE = True
+except Exception:
+    Limiter = None
+    LIMITER_AVAILABLE = False
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me-in-production")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URL",
-    f"sqlite:///{os.path.join(app.instance_path, 'dissonance_ledger.db')}",
-)
+
+# Render/Heroku expose DATABASE_URL with legacy postgres:// prefix; SQLAlchemy 2.x requires postgresql://
+_db_url = os.environ.get("DATABASE_URL") or f"sqlite:///{os.path.join(app.instance_path, 'dissonance_ledger.db')}"
+if _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
+
 app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "static", "uploads")
 app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=30)
 app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024  # 15 MB upload limit
+app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # 1 hour CSRF token validity
 
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+# ── SENTRY ────────────────────────────────────────────────────────────────────
+_sentry_dsn = os.environ.get("SENTRY_DSN", "")
+if SENTRY_AVAILABLE and _sentry_dsn:
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )
+    logger.info("Sentry initialised")
+
+if FlaskCompress:
+    FlaskCompress(app)
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
+
+# ── CSRF ──────────────────────────────────────────────────────────────────────
+csrf = CSRFProtect(app) if CSRF_AVAILABLE else None
+
+# ── RATE LIMITER ──────────────────────────────────────────────────────────────
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[],          # no global limit — only explicit per-route limits
+    storage_uri="memory://",
+) if LIMITER_AVAILABLE else None
 
 # ── ALGORAND ──────────────────────────────────────────────────────────────────
 
@@ -94,10 +154,10 @@ def _algorand_notarise(note_text):
         )
         signed = txn.sign(private_key)
         txid = client.send_transaction(signed)
-        algotxn.wait_for_confirmation(client, txid, wait_rounds=4)
+        # TXID is valid immediately; skip blocking wait_for_confirmation
         return txid
     except Exception as e:
-        print(f"[WARNING] Algorand notarisation failed: {e}")
+        logger.warning("Algorand notarisation failed: %s", e)
         return None
 
 
@@ -119,12 +179,13 @@ class ArchiveEntry(db.Model):
     location_name = db.Column(db.String(200))
     lat = db.Column(db.Float)
     lng = db.Column(db.Float)
-    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     recording_time_of_day = db.Column(db.String(20))
     recording_date = db.Column(db.Date)
     file_path = db.Column(db.String(200))
     prev_hash = db.Column(db.String(64))
     current_hash = db.Column(db.String(64), unique=True)
+    iucn_status = db.Column(db.String(10), default="LC")
     care_signatures = db.relationship("CareSignature", backref="entry", lazy=True)
 
 
@@ -132,14 +193,51 @@ class CareSignature(db.Model):
     """Community acknowledgment — Algorand Testnet TXID or SHA-256 fallback."""
 
     id = db.Column(db.Integer, primary_key=True)
-    entry_id = db.Column(db.Integer, db.ForeignKey("archive_entry.id"), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    entry_id = db.Column(db.Integer, db.ForeignKey("archive_entry.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     care_token = db.Column(
         db.String(100), nullable=False
     )  # Algorand TXID (52 chars) or SHA-256 (64 chars)
     statement = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     location_verified = db.Column(db.Boolean, default=False)
+    __table_args__ = (db.UniqueConstraint("entry_id", "user_id"),)
+
+
+class UserTransactionLog(db.Model):
+    """Permanent log of every user's Transaction IDs and Care Ledger IDs."""
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    care_signature_id = db.Column(db.Integer, db.ForeignKey("care_signature.id"), nullable=False, index=True)
+    txid = db.Column(db.String(100), nullable=False)  # Algorand TXID or SHA-256 witness token
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class FolkloreEntry(db.Model):
+    """Community-contributed ecological folklore and place memory."""
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    location_name = db.Column(db.String(200))
+    lat = db.Column(db.Float)
+    lng = db.Column(db.Float)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    prev_hash = db.Column(db.String(64))
+    current_hash = db.Column(db.String(64), unique=True)
+    witnesses = db.relationship("FolkloreWitness", backref="folklore_entry", lazy=True)
+
+
+class FolkloreWitness(db.Model):
+    """Community acknowledgment — I have also heard this story."""
+
+    id = db.Column(db.Integer, primary_key=True)
+    entry_id = db.Column(db.Integer, db.ForeignKey("folklore_entry.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    token = db.Column(db.String(100), nullable=False)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     __table_args__ = (db.UniqueConstraint("entry_id", "user_id"),)
 
 
@@ -150,11 +248,9 @@ def load_user(user_id):
 
 # ── ENGINES ───────────────────────────────────────────────────────────────────
 
-try:
-    analyzer = Analyzer()
-except Exception as e:
-    analyzer = None
-    print(f"[WARNING] BirdNET Analyzer unavailable: {e}")
+# BirdNET is loaded lazily inside upload() — not at startup — to avoid each
+# Gunicorn worker pre-loading the ~400 MB TensorFlow model unnecessarily.
+analyzer = None
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 
@@ -168,11 +264,11 @@ def get_coords(location_name):
     try:
         url = f"https://nominatim.openstreetmap.org/search?q={location_name}+Delhi&format=json&limit=1"
         res = requests.get(
-            url, headers={"User-Agent": "MappingDissonanceBot/1.0"}
+            url, headers={"User-Agent": "MappingDissonanceBot/1.0"}, timeout=5
         ).json()
         if res:
             return float(res[0]["lat"]), float(res[0]["lon"])
-    except:
+    except Exception:
         pass
     return 28.6139, 77.2090
 
@@ -192,6 +288,19 @@ def entry_to_dict(e, care_count=0):
         "file_path": e.file_path or "",
         "current_hash": e.current_hash or "",
         "care_count": care_count,
+        "iucn": e.iucn_status or "LC",
+    }
+
+
+def folklore_to_dict(fe, witness_count=0):
+    return {
+        "id": fe.id,
+        "title": fe.title,
+        "location_name": fe.location_name or "",
+        "lat": fe.lat or 0,
+        "lng": fe.lng or 0,
+        "timestamp": fe.timestamp.strftime("%d %b %Y") if fe.timestamp else "",
+        "witness_count": witness_count,
     }
 
 
@@ -250,8 +359,42 @@ def _fetch_rss(source_name, url, kws):
                     }
                 )
         return results
-    except:
+    except Exception:
         return []
+
+
+# ── SECURITY HEADERS + CACHE CONTROL ─────────────────────────────────────────
+
+@app.after_request
+def apply_headers(response):
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+    # Cache-Control: static audio files are immutable (content-addressed filenames)
+    if request.path.startswith("/audio/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif request.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=86400"
+    else:
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+# ── HEALTH CHECK ──────────────────────────────────────────────────────────────
+
+@app.route("/health")
+def health():
+    """Liveness probe for Render / Dokploy. Returns 200 when app is up."""
+    return jsonify({"status": "ok", "birdnet": BIRDNET_AVAILABLE, "algorand": ALGORAND_AVAILABLE}), 200
+
+
+# ── ROBOTS.TXT ────────────────────────────────────────────────────────────────
+
+@app.route("/robots.txt")
+def robots():
+    return app.response_class("User-agent: *\nDisallow: /upload\nDisallow: /care/\nDisallow: /folklore/\n", mimetype="text/plain")
 
 
 # ── ROUTES ────────────────────────────────────────────────────────────────────
@@ -746,21 +889,29 @@ def landing():
 @app.route("/mapping-dissonance")
 def mapping_dissonance():
     entries = ArchiveEntry.query.order_by(ArchiveEntry.timestamp.desc()).all()
-
     care_counts = dict(
         db.session.query(CareSignature.entry_id, func.count(CareSignature.id))
         .group_by(CareSignature.entry_id)
         .all()
     )
+    entries_data = [entry_to_dict(e, care_counts.get(e.id, 0)) for e in entries]
 
-    entries_json = json.dumps(
-        [entry_to_dict(e, care_counts.get(e.id, 0)) for e in entries]
+    folklore_entries = FolkloreEntry.query.order_by(FolkloreEntry.timestamp.desc()).all()
+    witness_counts = dict(
+        db.session.query(FolkloreWitness.entry_id, func.count(FolkloreWitness.id))
+        .group_by(FolkloreWitness.entry_id)
+        .all()
     )
+    folklore_data = [folklore_to_dict(fe, witness_counts.get(fe.id, 0)) for fe in folklore_entries]
+
     return render_template(
         "archive.html",
         entries=entries,
-        entries_json=entries_json,
+        entries_json=entries_data,
         care_counts=care_counts,
+        folklore_entries=folklore_entries,
+        folklore_json=folklore_data,
+        witness_counts=witness_counts,
     )
 
 
@@ -779,15 +930,11 @@ def bird_list():
     return render_template("bird_list.html", birds=BIRDS)
 
 
-@app.route("/robots.txt")
-def robots_txt():
-    return send_from_directory(app.root_path, "robots.txt")
-
-
 # ── CARE ROUTES ───────────────────────────────────────────────────────────────
 
 
 @app.route("/care/sign/<int:entry_id>", methods=["POST"])
+@(limiter.limit("30 per hour") if limiter else lambda f: f)
 def care_sign(entry_id):
     if not current_user.is_authenticated:
         return jsonify({"status": "unauthenticated"}), 401
@@ -836,10 +983,18 @@ def care_sign(entry_id):
         location_verified=loc_verified,
     )
     db.session.add(sig)
+    db.session.flush()  # get sig.id before commit
+
+    log = UserTransactionLog(
+        user_id=current_user.id,
+        care_signature_id=sig.id,
+        txid=token,
+    )
+    db.session.add(log)
     db.session.commit()
 
     count = CareSignature.query.filter_by(entry_id=entry_id).count()
-    return jsonify({"status": "signed", "care_token": token, "count": count})
+    return jsonify({"status": "signed", "care_token": token, "care_id": sig.id, "count": count})
 
 
 @app.route("/care/status/<int:entry_id>")
@@ -888,6 +1043,7 @@ def ledger():
         .join(ArchiveEntry, CareSignature.entry_id == ArchiveEntry.id)
         .join(User, CareSignature.user_id == User.id)
         .order_by(CareSignature.timestamp.desc())
+        .limit(200)
         .all()
     )
 
@@ -921,18 +1077,20 @@ _NEWS_CACHE_TTL = 1800  # 30 minutes
 
 
 def _cache_and_return(key, payload):
-    _news_cache[key] = {"ts": time.time(), "data": payload}
+    now = time.time()
+    expired = [k for k, v in _news_cache.items() if now - v["ts"] > _NEWS_CACHE_TTL]
+    for k in expired:
+        del _news_cache[k]
+    _news_cache[key] = {"ts": now, "data": payload}
     return jsonify(payload)
 
 
-@app.route("/get_context_news")
-def get_context_news():
-    location = request.args.get("location", "")
+def _fetch_news_payload(location):
+    """Fetch (or return cached) news for one location. Returns a plain dict."""
     cache_key = location.strip().lower()
-
     cached = _news_cache.get(cache_key)
     if cached and (time.time() - cached["ts"]) < _NEWS_CACHE_TTL:
-        return jsonify(cached["data"])
+        return cached["data"]
 
     kws = _loc_keywords(location) if location else []
 
@@ -951,7 +1109,9 @@ def get_context_news():
                 a.pop("_score", None)
             seen = set()
             deduped = [a for a in hits if not (a["url"] in seen or seen.add(a["url"]))]
-            return _cache_and_return(cache_key, {"articles": deduped[:6], "_tier": 1})
+            payload = {"articles": deduped[:6], "_tier": 1}
+            _cache_and_return(cache_key, payload)
+            return payload
 
     # TIER 2 — GDELT (India-filtered, free)
     try:
@@ -986,41 +1146,80 @@ def get_context_news():
                 ][:6],
                 "_tier": 2,
             }
-            return _cache_and_return(cache_key, payload)
+            _cache_and_return(cache_key, payload)
+            return payload
     except Exception:
         pass
 
-    # TIER 3 — NewsAPI, Delhi-locked
+    # TIER 3 — Mediastack, India-locked
     try:
-        newsapi = NewsApiClient(api_key=os.environ.get("NEWS_API_KEY", ""))
-        env = (
-            '(environment OR "habitat loss" OR urbanization OR pollution OR '
-            "construction OR conservation OR biodiversity OR wildlife OR "
-            'deforestation OR "green cover" OR encroachment OR "land use")'
+        ms_key = os.environ.get("MEDIASTACK_API_KEY", "")
+        if not ms_key:
+            raise ValueError("No mediastack key")
+        env_kws = (
+            "environment,habitat loss,urbanization,pollution,construction,"
+            "conservation,biodiversity,wildlife,deforestation,green cover,"
+            "encroachment,land use"
         )
-        noise = (
-            "NOT (entertainment OR bollywood OR celebrity OR gadgets OR "
-            '"stock market" OR sports OR cricket OR IPL)'
+        keywords = f"Delhi,{location},{env_kws}" if location else f"Delhi,{env_kws}"
+        resp = requests.get(
+            "http://api.mediastack.com/v1/news",
+            params={
+                "access_key": ms_key,
+                "keywords": keywords,
+                "countries": "in",
+                "languages": "en",
+                "limit": 6,
+                "sort": "published_desc",
+            },
+            timeout=10,
         )
-        query = (
-            f'("Delhi" AND "{location}") AND {env} {noise}'
-            if location
-            else f'"Delhi" AND {env} {noise}'
-        )
-        data = newsapi.get_everything(
-            q=query, language="en", sort_by="relevancy", page_size=6
-        )
-        if not data.get("articles"):
-            data = newsapi.get_everything(
-                q=f'"Delhi" AND {env} {noise}',
-                language="en",
-                sort_by="relevancy",
-                page_size=6,
-            )
-        data["_tier"] = 3
-        return _cache_and_return(cache_key, data)
+        resp.raise_for_status()
+        ms_data = resp.json()
+        articles = [
+            {
+                "title": a.get("title", ""),
+                "url": a.get("url", ""),
+                "source": {"name": a.get("source", "")},
+                "publishedAt": a.get("published_at", ""),
+            }
+            for a in ms_data.get("data", [])
+            if a.get("url")
+        ]
+        payload = {"articles": articles[:6], "_tier": 3}
+        _cache_and_return(cache_key, payload)
+        return payload
     except Exception:
-        return _cache_and_return(cache_key, {"articles": [], "_tier": 0})
+        payload = {"articles": [], "_tier": 0}
+        _cache_and_return(cache_key, payload)
+        return payload
+
+
+@app.route("/get_context_news")
+def get_context_news():
+    location = request.args.get("location", "")
+    return jsonify(_fetch_news_payload(location))
+
+
+@app.route("/get_context_news_batch", methods=["POST"])
+@(csrf.exempt if csrf else lambda f: f)
+def get_context_news_batch():
+    """Fetch news for multiple locations in one round-trip (used by archive page)."""
+    body = request.get_json(silent=True) or {}
+    locations = body.get("locations", [])
+    if not locations or not isinstance(locations, list):
+        return jsonify({})
+    unique = list(dict.fromkeys(str(l).strip() for l in locations if l))[:20]
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+        futs = {ex.submit(_fetch_news_payload, loc): loc for loc in unique}
+        for f in concurrent.futures.as_completed(futs):
+            loc = futs[f]
+            try:
+                results[loc] = f.result()
+            except Exception:
+                results[loc] = {"articles": []}
+    return jsonify(results)
 
 
 @app.route("/get_iucn_status/<sci_name>")
@@ -1033,13 +1232,14 @@ def get_iucn_status(sci_name):
             return jsonify(
                 {"status": res["assessments"][0]["red_list_category"]["name"]}
             )
-    except:
+    except Exception:
         pass
     return jsonify({"status": "Data pending"})
 
 
 @app.route("/upload", methods=["POST"])
 @login_required
+@(limiter.limit("10 per hour") if limiter else lambda f: f)
 def upload():
     file = request.files.get("file")
     if not file:
@@ -1057,19 +1257,69 @@ def upload():
     path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(path)
 
+    # Resolve coords first — BirdNET uses location to narrow candidate species
+    lat, lng = get_coords(loc_name)
+
+    global analyzer
+    if BIRDNET_AVAILABLE and analyzer is None:
+        try:
+            analyzer = Analyzer()
+        except Exception as e:
+            logger.warning("BirdNET Analyzer unavailable: %s", e)
+
     common, sci, conf = merlin_name or "Unknown", "Unknown", 0.0
     if analyzer:
         try:
-            rec = Recording(analyzer, path)
+            rec_date_dt = datetime(rec_date.year, rec_date.month, rec_date.day) if rec_date else datetime.now()
+            # First pass: location-filtered (faster, region-aware)
+            rec = Recording(
+                analyzer,
+                path,
+                lat=lat,
+                lon=lng,
+                date=rec_date_dt,
+                min_conf=0.1,
+            )
             rec.analyze()
             if rec.detections:
                 common = rec.detections[0]["common_name"]
                 sci = rec.detections[0]["scientific_name"]
                 conf = rec.detections[0]["confidence"]
-        except:
-            pass
+            else:
+                # Second pass: global species list — reset location filter state first
+                analyzer.custom_species_list = []
+                analyzer.has_custom_species_list = False
+                rec2 = Recording(analyzer, path, min_conf=0.1)
+                rec2.analyze()
+                if rec2.detections:
+                    common = rec2.detections[0]["common_name"]
+                    sci = rec2.detections[0]["scientific_name"]
+                    conf = rec2.detections[0]["confidence"]
+        except Exception as e:
+            logger.warning("BirdNET analysis failed: %s", e)
 
-    lat, lng = get_coords(loc_name)
+    # Reject unidentified sounds — delete the saved file and abort
+    if common == "Unknown":
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        return redirect(url_for("mapping_dissonance"))
+
+    # IUCN lookup — static dict first (common name → code), then scientific name
+    iucn_status = _BIRD_IUCN.get(common) or _SCI_IUCN.get(sci)
+    if not iucn_status and sci and sci != "Unknown":
+        try:
+            token = os.environ.get("IUCN_TOKEN", "")
+            url = f"https://api.iucnredlist.org/api/v4/taxa/scientific_name/{sci.replace(' ', '%20')}"
+            res = requests.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=5).json()
+            if res.get("assessments"):
+                raw = res["assessments"][0]["red_list_category"].get("code", "")
+                iucn_status = raw if raw in ("LC", "NT", "VU", "EN", "CR", "DD", "EW", "EX") else None
+        except Exception:
+            pass
+    iucn_status = iucn_status or "LC"
+
     last = ArchiveEntry.query.order_by(ArchiveEntry.id.desc()).first()
     prev_h = last.current_hash if last else "0" * 64
     new_h = hashlib.sha256(f"{prev_h}{common}{filename}".encode()).hexdigest()
@@ -1088,6 +1338,7 @@ def upload():
             file_path=filename,
             prev_hash=prev_h,
             current_hash=new_h,
+            iucn_status=iucn_status,
         )
     )
     db.session.commit()
@@ -1099,7 +1350,82 @@ def serve_audio(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
 
+@app.route("/folklore/submit", methods=["POST"])
+@login_required
+@(limiter.limit("5 per hour") if limiter else lambda f: f)
+def folklore_submit():
+    title = request.form.get("title", "").strip()
+    body = request.form.get("body", "").strip()
+    loc_name = request.form.get("location_name", "").strip()
+
+    # File upload takes priority over textarea if non-empty
+    uploaded = request.files.get("file")
+    if uploaded and uploaded.filename:
+        ext = os.path.splitext(secure_filename(uploaded.filename))[1].lower()
+        if ext == ".txt":
+            try:
+                file_text = uploaded.read().decode("utf-8", errors="replace").strip()
+                if file_text:
+                    body = file_text
+            except Exception:
+                pass
+
+    if not title or not body:
+        return redirect(url_for("mapping_dissonance"))
+
+    lat, lng = get_coords(loc_name) if loc_name else (28.6139, 77.2090)
+
+    last = FolkloreEntry.query.order_by(FolkloreEntry.id.desc()).first()
+    prev_h = last.current_hash if last else "0" * 64
+    new_h = hashlib.sha256(f"{prev_h}{title}{current_user.id}".encode()).hexdigest()
+
+    fe = FolkloreEntry(
+        title=title,
+        body=body,
+        location_name=loc_name,
+        lat=lat,
+        lng=lng,
+        user_id=current_user.id,
+        prev_hash=prev_h,
+        current_hash=new_h,
+    )
+    db.session.add(fe)
+    db.session.commit()
+    return redirect(url_for("mapping_dissonance") + "#stories")
+
+
+@app.route("/folklore/witness/<int:entry_id>", methods=["POST"])
+def folklore_witness(entry_id):
+    if not current_user.is_authenticated:
+        return jsonify({"status": "unauthenticated"}), 401
+
+    FolkloreEntry.query.get_or_404(entry_id)
+
+    existing = FolkloreWitness.query.filter_by(
+        entry_id=entry_id, user_id=current_user.id
+    ).first()
+    if existing:
+        count = FolkloreWitness.query.filter_by(entry_id=entry_id).count()
+        return jsonify({"status": "already_witnessed", "count": count})
+
+    ts = datetime.now(timezone.utc).isoformat()
+    note = f"mapping-dissonance:folklore={entry_id}:user={current_user.id}:ts={ts}"
+    txid = _algorand_notarise(note)
+    token = txid if txid else hashlib.sha256(
+        f"{entry_id}:{current_user.id}:{ts}".encode()
+    ).hexdigest()
+
+    wit = FolkloreWitness(entry_id=entry_id, user_id=current_user.id, token=token)
+    db.session.add(wit)
+    db.session.flush()
+    db.session.commit()
+
+    count = FolkloreWitness.query.filter_by(entry_id=entry_id).count()
+    return jsonify({"status": "witnessed", "token": token, "witness_id": wit.id, "count": count})
+
+
 @app.route("/login", methods=["GET", "POST"])
+@(limiter.limit("20 per hour") if limiter else lambda f: f)
 def login():
     if request.method == "POST":
         user = User.query.filter_by(email=request.form["email"].strip().lower()).first()
@@ -1110,6 +1436,7 @@ def login():
 
 
 @app.route("/register", methods=["GET", "POST"])
+@(limiter.limit("5 per hour") if limiter else lambda f: f)
 def register():
     if request.method == "POST":
         email = request.form["email"].strip().lower()
@@ -1123,8 +1450,7 @@ def register():
 
 
 _BIRD_IUCN = {b["common"]: b["iucn"] for b in BIRDS}
-_IUCN_RANK = {"CR": 5, "EN": 4, "VU": 3, "NT": 2, "LC": 1}
-_IUCN_LABEL = {5: "CR", 4: "EN", 3: "VU", 2: "NT", 1: "LC"}
+_SCI_IUCN  = {b["scientific"]: b["iucn"] for b in BIRDS}
 
 
 @app.route("/api/landing-records")
@@ -1165,61 +1491,24 @@ def landing_records():
     return jsonify(records)
 
 
-@app.route("/api/recording-pins")
-def recording_pins():
-    rows = (
-        ArchiveEntry.query.filter(
-            ArchiveEntry.lat.isnot(None), ArchiveEntry.lng.isnot(None)
-        )
-        .with_entities(
-            ArchiveEntry.id,
-            ArchiveEntry.lat,
-            ArchiveEntry.lng,
-            ArchiveEntry.species_common,
-            ArchiveEntry.location_name,
-            ArchiveEntry.recording_date,
-        )
-        .order_by(ArchiveEntry.timestamp.desc())
+@app.route("/api/folklore-pins")
+def api_folklore_pins():
+    entries = (
+        FolkloreEntry.query
+        .filter(FolkloreEntry.lat.isnot(None), FolkloreEntry.lng.isnot(None))
+        .order_by(FolkloreEntry.timestamp.desc())
         .limit(200)
         .all()
     )
-
-    clusters = {}
-    for r in rows:
-        key = r.location_name or "field-{:.3f}-{:.3f}".format(r.lat, r.lng)
-        if key not in clusters:
-            clusters[key] = {
-                "lat": r.lat,
-                "lng": r.lng,
-                "count": 0,
-                "species": set(),
-                "location": r.location_name or "Field Recording",
-                "iucn_rank": 0,
-            }
-        clusters[key]["count"] += 1
-        if r.species_common:
-            clusters[key]["species"].add(r.species_common)
-            rank = _IUCN_RANK.get(_BIRD_IUCN.get(r.species_common, "LC"), 1)
-            if rank > clusters[key]["iucn_rank"]:
-                clusters[key]["iucn_rank"] = rank
-
-    pins = []
-    for i, (_, c) in enumerate(clusters.items()):
-        species_list = ", ".join(sorted(c["species"])[:5])
-        if not species_list:
-            species_list = "Unknown"
-        pins.append(
-            {
-                "id": "db_" + str(i),
-                "position": [c["lng"], c["lat"]],
-                "count": c["count"],
-                "species": species_list,
-                "location": c["location"],
-                "iucn": _IUCN_LABEL.get(c["iucn_rank"], "LC"),
-            }
-        )
-
-    return jsonify(pins)
+    return jsonify([{
+        "id": e.id,
+        "lat": e.lat,
+        "lng": e.lng,
+        "title": e.title,
+        "body": e.body or "",
+        "location_name": e.location_name or "",
+        "timestamp": e.timestamp.strftime("%d %b %Y") if e.timestamp else "",
+    } for e in entries])
 
 
 @app.route("/logout")
@@ -1231,6 +1520,38 @@ def logout():
 # Ensure tables exist whether running via gunicorn or directly
 with app.app_context():
     db.create_all()
+    # Add indexes to existing DBs that predate index=True on the models
+    with db.engine.connect() as _conn:
+        _conn.execute(text("CREATE INDEX IF NOT EXISTS ix_archive_entry_timestamp ON archive_entry(timestamp)"))
+        _conn.execute(text("CREATE INDEX IF NOT EXISTS ix_care_signature_entry_id ON care_signature(entry_id)"))
+        _conn.execute(text("CREATE INDEX IF NOT EXISTS ix_care_signature_user_id ON care_signature(user_id)"))
+        _conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_transaction_log_user_id ON user_transaction_log(user_id)"))
+        _conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_transaction_log_care_sig ON user_transaction_log(care_signature_id)"))
+        # Migrate existing DBs that predate the iucn_status column
+        try:
+            _conn.execute(text("ALTER TABLE archive_entry ADD COLUMN iucn_status VARCHAR(10) DEFAULT 'LC'"))
+        except Exception:
+            pass  # column already exists
+        _conn.commit()
+
+    # Purge existing entries that BirdNET never identified
+    unknown_entries = ArchiveEntry.query.filter(
+        (ArchiveEntry.species_common == "Unknown") | (ArchiveEntry.species_common == None)
+    ).all()
+    for _e in unknown_entries:
+        if _e.file_path:
+            _fp = os.path.join(app.config["UPLOAD_FOLDER"], _e.file_path)
+            try:
+                os.remove(_fp)
+            except OSError:
+                pass
+        db.session.delete(_e)
+    if unknown_entries:
+        db.session.commit()
+        # Evict news cache entries for affected locations
+        _evict_locs = {_e.location_name.strip().lower() for _e in unknown_entries if _e.location_name}
+        for _loc in _evict_locs:
+            _news_cache.pop(_loc, None)
 
 if __name__ == "__main__":
     app.run(debug=False, use_reloader=False, port=5001)

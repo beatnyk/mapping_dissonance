@@ -10,10 +10,11 @@
   <!-- ── FILING-CABINET TAB NAVIGATION ── -->
   <nav class="abt-nav" id="abt-nav">
     <button class="abt-tab active" data-tab="abt-project" data-idx="0">The Project</button>
-    <button class="abt-tab" data-tab="abt-ridge" data-idx="1">Aravalli Ridge</button>
+    <button class="abt-tab" data-tab="abt-ridge" data-idx="1">Aravalli</button>
     <button class="abt-tab" data-tab="abt-fieldnotes" data-idx="2">Field Notes</button>
     <button class="abt-tab" data-tab="abt-abeyance" data-idx="3">The 100M Rule</button>
-    <button class="abt-tab" data-tab="abt-business" data-idx="4">Business as Usual</button>
+    <button class="abt-tab" data-tab="abt-business" data-idx="4">Cases</button>
+    <button class="abt-tab" data-tab="abt-acknowledgements" data-idx="5">Acknowledgements</button>
   </nav>
 
   <!-- ── PANELS WRAP ── -->
@@ -27,7 +28,7 @@
         <div class="abt-row">
           <div class="abt-label">The Work</div>
           <div class="abt-body">
-            <p><strong>Mapping Dissonance</strong> is an interdisciplinary sound research project documenting the friction between urban expansion and avian ecological survival in Delhi. The project records bird calls across the Delhi Ridge and the broader Aravalli landscape, anchors each recording to a blockchain-structured ledger, and makes the resulting archive available as an open witness to biodiversity in a habitat whose legal protection is — as of March 2026 — unresolved.</p>
+            <p><strong>Mapping Dissonance</strong> is an interdisciplinary sound research project documenting the friction between urban expansion and avian ecological survival in Delhi. The project records bird calls across Delhi and the broader Aravalli landscape, anchors each recording to a blockchain-structured ledger, and makes the resulting archive available as an open witness to biodiversity in a habitat whose legal protection is — as of March 2026 — unresolved.</p>
             <p>The title names a double condition. There is the acoustic dissonance of the city itself: the spectral overlap between birdsong and road noise, between the call of a koel and the compression of a construction drill. And there is the political dissonance of a forest held simultaneously in protection and suspension — a habitat that exists in law, in ecology, and in a Supreme Court order that has been stayed but not withdrawn.</p>
             <p>The archive is not a catalogue. It is a form of witness. Each recorded entry is a timestamp, a coordinate, a species, and a hash — a fixed point in a chain of evidence. The care interface allows local community members to sign their acknowledgment of a recording, embedding a second kind of witness alongside the machine.</p>
           </div>
@@ -36,7 +37,7 @@
         <div class="abt-row">
           <div class="abt-label">Methodology</div>
           <div class="abt-body">
-            <p>Field recordings are made using a portable stereo microphone at sites across the Delhi Ridge (Northern, Central, Southern, and Mehrauli segments) and in the Mangar Bani and Damdama Lake zones of the Haryana Aravalli. Recordings are submitted to BirdNET-Analyzer — a neural network trained on the Cornell Lab of Ornithology's Xeno-canto dataset — for automated species identification. Each detection above a confidence threshold of 0.7 is logged with a GPS coordinate and a time-of-day stamp.</p>
+            <p>Field recordings are made using a field recorder / phone microphone (via Merlin App) at sites across Delhi and slowly moving further into the Mangar Bani and Damdama Lake zones of the Haryana Aravalli. Recordings are submitted to BirdNET-Analyzer — a neural network trained on the Cornell Lab of Ornithology's Xeno-canto dataset — for automated species identification. Each detection above a confidence threshold of 0.7 is logged with a GPS coordinate and a time-of-day stamp.</p>
             <p>The blockchain layer uses a sequential SHA-256 chaining structure: each new entry hashes together the previous entry's hash, the species name, and the filename. This creates a tamper-evident ledger. The system is architecturally prepared for migration to Algorand, a proof-of-stake blockchain with a near-zero carbon footprint. No live blockchain deployment is made during the residency period; the chain is built and verified locally.</p>
             <p>The Care Token system generates a unique cryptographic token for each community witness signature. These tokens are included in the ledger record, creating an auditable second layer of provenance alongside the machine-generated species identification.</p>
           </div>
@@ -45,21 +46,21 @@
         <div class="abt-row">
           <div class="abt-label">The Artist</div>
           <div class="abt-body">
-            <p>An interdisciplinary sound artist whose practice spans field recording, live-coding, and experimental electronic composition. The work moves between performance and installation, using research — ecological, legal, historical — as both material and method. Previous projects have engaged with the sonic geography of urban infrastructure, the acoustics of disappearing spaces, and the political life of frequency. The practice is rooted in the belief that listening is a political act, and that the archive is never neutral.</p>
+            <p>beatnyk is an interdisciplinary sound artist whose practice spans field recording, live-coding, and experimental electronic composition. The work moves between performance and installation, using research and curiosity as both material and method. The practice is rooted in the belief that listening is a political act, and that the archive is never neutral.</p>
           </div>
         </div>
 
         <div class="abt-row">
           <div class="abt-label">Residency</div>
           <div class="abt-body">
-            <p>Developed during the <strong>Polymorphic Futures</strong> web residency program at <strong>Akademie Schloss Solitude</strong>, Stuttgart. The residency provided the framework to explore how emerging technologies — decentralised ledgers, AI acoustic classification, open geodata — can be repurposed for ecological witnessing and community-led documentation. The question animating the residency: what does it mean to build an archive in a habitat that may not survive the legal interval of its making?</p>
+            <p>Developed during the <strong>Polymorphic Futures</strong> web residency program at <strong>Akademie Schloss Solitude</strong>, Stuttgart. The residency provided the framework to explore how emerging technologies — decentralised ledgers, blockchain algorithms, rethinking digital archives — can be repurposed for ecological witnessing and community-led documentation. The question animating the residency: what does it mean to build an archive in a habitat that may not survive the legal interval of its making?</p>
           </div>
         </div>
 
         <div class="abt-row">
           <div class="abt-label">The Care Interface</div>
           <div class="abt-body">
-            <p>Alongside AI analysis, the archive includes a community witness system. Logged-in users who are local to a recorded habitat can sign a statement of acknowledgment for each soundscape: <em>"I am local to this area. I have heard these sounds. I acknowledge the urgency of its conservation."</em> Each signature generates a unique cryptographic token anchored to that recording's ledger entry — a Care Token — which becomes part of the immutable record.</p>
+            <p>Alongside AI analysis, the archive includes a community witness system. Logged-in users who are local to a recorded habitat can sign a statement of acknowledgment for each soundscape: <em>"I am local to this area. I have heard these birds. I acknowledge the urgency of its conservation."</em> Each signature generates a unique cryptographic token anchored to that recording's ledger entry — a Care Token — which becomes part of the immutable record.</p>
             <p>The system is built around the principle that machine identification is insufficient witness. A neural network can name the bird. It cannot testify to having heard it. Community signatures supply that second register of knowledge — embodied, local, human — without which the archive remains merely technical.</p>
           </div>
         </div>
@@ -67,7 +68,7 @@
         <div class="abt-row">
           <div class="abt-label">Contribute</div>
           <div class="abt-body">
-            <p>The archive is open. If you have recorded bird calls in Delhi — using a field recorder, a smartphone, or the Merlin Bird ID app — you can add them to the ledger. <a href="/register">Create an account</a> to contribute. All recordings remain the property of their contributors. No audio is used for AI training. User-Agent: GPTBot is denied in robots.txt.</p>
+            <p>The archive is open. If you have recorded bird calls in Delhi — using a field recorder, a smartphone, or the Merlin Bird ID app — you can add them to the ledger. <a href="/register">Create an account</a> to contribute. All recordings remain the property of their contributors. No audio is used for AI training.</p>
           </div>
         </div>
 
@@ -80,13 +81,13 @@
     <!-- ════ PANEL 2 — ARAVALLI RIDGE ════ -->
     <div class="abt-panel" id="abt-ridge">
       <div class="abt-inner">
-        <h1 class="abt-heading">Aravalli<br>Ridge</h1>
+        <h1 class="abt-heading">Aravalli</h1>
 
         <div class="abt-row">
           <div class="abt-label">Geology</div>
           <div class="abt-body">
             <p>The Aravalli Range is among the oldest geological formations on Earth. Formed during the Precambrian era, its parent rocks date to approximately 3.5 billion years ago — older than most life on land. The range runs for roughly 800 kilometres from the Rann of Kutch in Gujarat, through Rajasthan, and terminates in a narrow northern spur that passes through Delhi before disappearing beneath the alluvial plains of Haryana. What remains in Delhi is the Delhi Ridge: a discontinuous line of quartzite and schist hillocks, seldom more than 80 metres above the surrounding plain, covered in dry tropical thorn forest.</p>
-            <p>Its age is not merely geological fact. It is argument. These are not hills that formed alongside the Himalayas and can be understood in terms of current tectonic activity. They are remnant erosional features — what remains after billions of years of weathering. They cannot be restored. They can only be lost.</p>
+            <p>Its age is the argument. These are not hills that formed alongside the Himalayas and can be understood in terms of current tectonic activity. They are remnant erosional features — what remains after billions of years of weathering. They cannot be restored. They can only be lost.</p>
           </div>
         </div>
 
@@ -371,6 +372,46 @@
       </div>
     </div>
 
+    <!-- ════ PANEL 6 — ACKNOWLEDGEMENTS ════ -->
+    <div class="abt-panel" id="abt-acknowledgements">
+      <div class="abt-inner">
+        <h1 class="abt-heading">Acknowled-<br>gements</h1>
+
+        <div class="abt-row">
+          <div class="abt-label">Residency</div>
+          <div class="abt-body">
+            <p>This project was made possible by the <strong>Polymorphic Futures</strong> web residency programme at <strong>Akademie Digital Solitude</strong>. The Digital Solitude residency has provided the time, space, and intellectual framework for this work — a generous invitation to think, research, and build something that was ambitious out of curiosity.</p>
+            <p>Sincere gratitude to Barbara Cueto, Sarah Donderer and Grayson Earle for their support throughout the process.</p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Family &amp; Friends</div>
+          <div class="abt-body">
+            <p><em>The development of this project is rooted in a lineage of stories and shared observations. It began with my father’s love for lore and fables, and the nightly ritual of bedtime stories for my brother and me as children, which established a lifelong grounding in the art of listening and dreaming.</em></p>
+            <p>This archive is the result of a collective shift in perspective and the steady support of those who have shaped my journey. My worldview was fundamentally altered through the Agents of Malarkey project with Anish Cherian, while the Dawn Chorus walks with Surbhi Mittal provided the necessary discipline to move beyond passive hearing and begin truly listening to the city’s avian life. The forced silence of the pandemic acted as a final catalyst, making the impact of noise on our shared ecology impossible to ignore.</p>
+            <p>None of this work would have been possible without the unwavering support of my brother, my father, and my mother. I owe a deep debt of gratitude to the friends I have been blessed with since my school days; those quiet hours spent by the lake in Avadi were the seeds of this project’s curiosity. Finally, to the community of friends I was blessed to find through my journey, who constantly challenge and inspire me with their own practice (you know who you are): thank you for keeping me on my toes.</p>
+            <p><em>This work is a synthesis of countless walks and conversations with friends and family, all of which centered on the past, present, and future of the landscapes we inhabit. Each of these collaborations and moments has contributed to the "Watcher" perspective that defines this archive.</em></p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Contributors</div>
+          <div class="abt-body">
+            <p><em>Gratitude to everyone who is contributing field recordings, signing the care ledger, or submitting stories to this archive. The archive is made of your testimony.</em></p>
+          </div>
+        </div>
+
+        <div class="abt-row">
+          <div class="abt-label">Data &amp; Tools</div>
+          <div class="abt-body">
+            <p>This project draws on open datasets and open-source tools: BirdNET-Analyzer (Cornell Lab of Ornithology / Kahl et al.), the IUCN Red List API, OpenStreetMap / Nominatim geocoding, MapLibre GL for map rendering, and the Cornell Lab Xeno-canto dataset on which BirdNET was trained. All audio recordings remain the property of their contributors and are not used for AI training.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div><!-- /.abt-panels-wrap -->
 
   <!-- React progress nav mount -->
@@ -378,135 +419,94 @@
 
 </div><!-- /.abt-page -->
 
-<!-- ── DEPENDENCIES ────────────────────────────────────── -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.min.js"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-<!-- ── THREE.JS — PARTICLE FIELD ──────────────────────── -->
+<!-- ── PARTICLE FIELD — vanilla Canvas 2D (replaces Three.js 670 KB) ──────── -->
 <script>
 (function () {
   var canvas = document.getElementById('abt-canvas');
-  if (!canvas || typeof THREE === 'undefined') return;
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var N = 320, W, H, pts = [], mouse = { x: 0, y: 0 }, t = 0;
 
-  var W = window.innerWidth, H = window.innerHeight;
-  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(W, H);
-  renderer.setClearColor(0x000000, 0);
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
 
-  var scene  = new THREE.Scene();
-  var camera = new THREE.PerspectiveCamera(65, W / H, 0.1, 500);
-  camera.position.z = 6;
-
-  // Particle cloud — 320 drifting points
-  var N   = 320;
-  var pos = new Float32Array(N * 3);
-  var vel = [];
   for (var i = 0; i < N; i++) {
-    pos[i * 3]     = (Math.random() - 0.5) * 22;
-    pos[i * 3 + 1] = (Math.random() - 0.5) * 13;
-    pos[i * 3 + 2] = (Math.random() - 0.5) * 6;
-    vel.push({ x: (Math.random() - 0.5) * 0.0024, y: (Math.random() - 0.5) * 0.0016 });
+    pts.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.2,
+      r: Math.random() * 1.5 + 0.5
+    });
   }
 
-  var geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-
-  function getColor() {
-    return document.documentElement.getAttribute('data-theme') === 'dark' ? 0xffffff : 0x111111;
-  }
-  function getOpacity() {
-    return document.documentElement.getAttribute('data-theme') === 'dark' ? 0.22 : 0.10;
+  function getStyle() {
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return { color: dark ? '255,255,255' : '17,17,17', alpha: dark ? 0.22 : 0.10 };
   }
 
-  var mat = new THREE.PointsMaterial({ size: 0.05, color: getColor(), transparent: true, opacity: getOpacity(), sizeAttenuation: true });
-  var pts = new THREE.Points(geo, mat);
-  scene.add(pts);
-
-  // Theme reactivity
-  window.updateAbtTheme = function () {
-    mat.color.setHex(getColor());
-    mat.opacity = getOpacity();
-  };
-  var themeBtn = document.getElementById('theme-toggle');
-  if (themeBtn) themeBtn.addEventListener('click', function () { setTimeout(window.updateAbtTheme, 50); });
-
-  // Mouse parallax
-  var mouse = { x: 0, y: 0 };
   document.addEventListener('mousemove', function (e) {
-    mouse.x = (e.clientX / window.innerWidth  - 0.5) * 0.6;
-    mouse.y = (e.clientY / window.innerHeight - 0.5) * 0.4;
+    mouse.x = (e.clientX / window.innerWidth  - 0.5) * 60;
+    mouse.y = (e.clientY / window.innerHeight - 0.5) * 40;
   });
 
-  window.addEventListener('resize', function () {
-    W = window.innerWidth; H = window.innerHeight;
-    renderer.setSize(W, H);
-    camera.aspect = W / H;
-    camera.updateProjectionMatrix();
-  });
+  window.updateAbtTheme = function () {};  // hook kept for theme-toggle compatibility
 
-  var t = 0;
   (function animate() {
     requestAnimationFrame(animate);
     t += 0.001;
-    var p = geo.attributes.position.array;
+    ctx.clearRect(0, 0, W, H);
+    var s = getStyle();
     for (var i = 0; i < N; i++) {
-      p[i * 3]     += vel[i].x + Math.sin(t + i) * 0.0004;
-      p[i * 3 + 1] += vel[i].y + Math.cos(t + i * 1.3) * 0.0003;
-      if (p[i * 3] >  11) p[i * 3] = -11;
-      if (p[i * 3] < -11) p[i * 3] =  11;
-      if (p[i * 3 + 1] >  6.5) p[i * 3 + 1] = -6.5;
-      if (p[i * 3 + 1] < -6.5) p[i * 3 + 1] =  6.5;
+      var p = pts[i];
+      p.x += p.vx + Math.sin(t + i) * 0.04 + mouse.x * 0.0006;
+      p.y += p.vy + Math.cos(t + i * 1.3) * 0.03 + mouse.y * 0.0006;
+      if (p.x > W + 4) p.x = -4;  else if (p.x < -4) p.x = W + 4;
+      if (p.y > H + 4) p.y = -4;  else if (p.y < -4) p.y = H + 4;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(' + s.color + ',' + s.alpha + ')';
+      ctx.fill();
     }
-    geo.attributes.position.needsUpdate = true;
-    camera.position.x += (mouse.x - camera.position.x) * 0.018;
-    camera.position.y += (-mouse.y - camera.position.y) * 0.018;
-    camera.lookAt(scene.position);
-    renderer.render(scene, camera);
   })();
 })();
 </script>
 
-<!-- ── REACT — SECTION PROGRESS DOTS ─────────────────── -->
+<!-- ── SECTION PROGRESS DOTS — vanilla JS (replaces React 130 KB) ─────────── -->
 <script>
 (function () {
-  if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') return;
-  var h = React.createElement;
+  var LABELS = ['The Project', 'Aravalli Ridge', 'Field Notes', 'The 100M Rule', 'Business as Usual', 'Acknowledgements'];
+  var mount = document.getElementById('abt-prog-mount');
+  if (!mount) return;
 
-  var LABELS = ['The Project', 'Aravalli Ridge', 'Field Notes', 'The 100M Rule', 'Business as Usual'];
+  var nav = document.createElement('nav');
+  nav.className = 'prog-nav';
+  nav.setAttribute('aria-label', 'Section navigation');
 
-  function ProgNav() {
-    var state = React.useState(0);
-    var current = state[0], setCurrent = state[1];
-
-    React.useEffect(function () {
-      function handler(e) { setCurrent(e.detail); }
-      window.addEventListener('abt-section', handler);
-      return function () { window.removeEventListener('abt-section', handler); };
-    }, []);
-
-    function goTo(i) {
+  var dots = LABELS.map(function (label, i) {
+    var btn = document.createElement('button');
+    btn.className = 'prog-dot' + (i === 0 ? ' active' : '');
+    btn.title = label;
+    btn.innerHTML = '<span class="prog-tooltip">' + label + '</span>';
+    btn.addEventListener('click', function () {
       var tab = document.querySelector('[data-idx="' + i + '"]');
       if (tab) tab.click();
-    }
+    });
+    nav.appendChild(btn);
+    return btn;
+  });
 
-    return h('nav', { className: 'prog-nav', 'aria-label': 'Section navigation' },
-      LABELS.map(function (label, i) {
-        return h('button', {
-          key: i,
-          className: 'prog-dot' + (i === current ? ' active' : ''),
-          onClick: function () { goTo(i); },
-          title: label
-        },
-          h('span', { className: 'prog-tooltip' }, label)
-        );
-      })
-    );
-  }
+  mount.appendChild(nav);
 
-  var mount = document.getElementById('abt-prog-mount');
-  if (mount) ReactDOM.createRoot(mount).render(h(ProgNav, null));
+  window.addEventListener('abt-section', function (e) {
+    dots.forEach(function (d, i) {
+      d.className = 'prog-dot' + (i === e.detail ? ' active' : '');
+    });
+  });
 })();
 </script>
 

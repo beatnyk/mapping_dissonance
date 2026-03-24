@@ -1,34 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Mapping Dissonance - Sound Archive{% endblock %}
+{% block title %}Mapping Dissonance - Archive{% endblock %}
 
 {% block head %}
-<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preload" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet"></noscript>
 
 <style>
   /* ── GLOBAL THEME INHERITANCE — chain to global vars so dark mode cascades ── */
   :root {
-    --sketch-radius: 2px 255px 3px 25px / 255px 5px 225px 3px;
     --mute-base:   var(--bg);
     --mute-panel:  var(--bg-alt);
     --mute-border: var(--hairline);
     --mute-text:   var(--fg);
     --box-border:  1px solid var(--mute-border);
   }
-
   .sketchy-box {
     border: var(--box-border);
-    border-radius: var(--sketch-radius);
+    border-radius: 0;
   }
 
   /* ── SPLIT SCREEN LAYOUT ── */
   .archive-container {
     display: flex;
     width: 100vw;
-    /* Adjusted to account for your site's header height */
-    padding-top: 85px; 
+    padding-top: 85px;
     height: 100vh;
     box-sizing: border-box;
-    overflow: hidden; /* Prevents whole page scrolling */
+    overflow: hidden;
     background-color: var(--mute-base);
     color: var(--mute-text);
   }
@@ -36,29 +35,93 @@
   /* Left: Fixed Map */
   .archive-map-wrapper {
     width: 50vw;
-    height: 100%; /* Fits perfectly within parent container */
+    height: 100%;
     position: relative;
     border-right: 2px solid var(--mute-border);
     box-sizing: border-box;
   }
-
   #archive-map {
     width: 100%;
     height: 100%;
     background-color: var(--mute-base);
   }
 
-  /* Right: Scrollable Ledger & Feed */
-  .archive-feed-wrapper {
-    width: 50vw;
-    height: 100%; /* Allows internal scrolling */
-    overflow-y: auto; /* Enables the scrollbar */
-    padding: 38.2px; 
-    padding-bottom: 100px; /* Extra space at the bottom so the last item isn't cut off */
+  /* ── MAP KEY ── */
+  .arc-map-key {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 10;
     background: var(--mute-base);
-    box-sizing: border-box; /* Crucial: Keeps padding inside the container limits */
+    border: 1px solid var(--mute-border);
+    padding: 10px 14px;
+    font-size: 0.75rem;
+    line-height: 1.8;
+    pointer-events: none;
+  }
+  .arc-map-key-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .arc-map-key-dot {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
   }
 
+  /* Right: Tab container */
+  .archive-feed-wrapper {
+    width: 50vw;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--mute-base);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  /* ── TAB NAV ── */
+  .archive-tab-nav {
+    display: flex;
+    border-bottom: 2px solid var(--mute-border);
+    flex-shrink: 0;
+  }
+  .archive-tab-btn {
+    flex: 1;
+    padding: 16px 23.6px;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--mute-border);
+    color: var(--mute-text);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+  }
+  .archive-tab-btn:last-child { border-right: none; }
+  .archive-tab-btn.active {
+    opacity: 1;
+    box-shadow: inset 0 -2px 0 var(--mute-text);
+  }
+  .archive-tab-btn:hover:not(.active) { opacity: 0.65; }
+
+  /* ── TAB PANELS ── */
+  .tab-panel {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 38.2px;
+    padding-bottom: 100px;
+    box-sizing: border-box;
+  }
+  .tab-panel.active { display: block; }
+
+  /* ── ARCHIVE HEADER ── */
   .archive-header {
     margin-bottom: 38.2px;
     border-bottom: var(--box-border);
@@ -76,6 +139,20 @@
     opacity: 0.8;
   }
 
+  /* ── INTRO TEXT BLOCK ── */
+  .archive-intro {
+    padding: 23.6px;
+    margin-bottom: 38.2px;
+    background: var(--bg-alt);
+  }
+  .archive-intro p {
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin: 0 0 14.6px 0;
+    opacity: 0.85;
+  }
+  .archive-intro p:last-child { margin-bottom: 0; }
+
   /* ── UPLOAD FORM ── */
   .upload-section {
     background: var(--bg-alt);
@@ -90,8 +167,37 @@
     border-bottom: 1px dashed var(--mute-border);
     padding-bottom: 10px;
   }
-  .form-group {
-    margin-bottom: 14.6px;
+  .form-group { margin-bottom: 14.6px; }
+  .pick-loc-btn {
+    display: inline-block;
+    margin-top: 5px;
+    font-size: 0.78rem;
+    font-family: var(--mono);
+    background: transparent;
+    border: none;
+    color: var(--fg);
+    opacity: 0.55;
+    cursor: pointer;
+    padding: 0;
+    letter-spacing: 0.04em;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .pick-loc-btn:hover { opacity: 1; }
+  #pick-hint {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--fg);
+    color: var(--bg);
+    padding: 8px 18px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    z-index: 9999;
+    pointer-events: none;
   }
   .form-group label {
     display: block;
@@ -103,7 +209,8 @@
   }
   .form-group input[type="text"],
   .form-group input[type="date"],
-  .form-group input[type="file"] {
+  .form-group input[type="file"],
+  .form-group textarea {
     width: 100%;
     padding: 10px;
     background: transparent;
@@ -111,6 +218,20 @@
     color: var(--mute-text);
     font-family: inherit;
     box-sizing: border-box;
+  }
+  .form-group textarea {
+    min-height: 160px;
+    line-height: 1.618;
+    font-size: 0.9rem;
+    resize: vertical;
+  }
+  .form-divider {
+    text-align: center;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.4;
+    margin: 14.6px 0;
   }
   .submit-btn {
     background: var(--mute-text);
@@ -129,16 +250,14 @@
     border: 1px solid var(--mute-text);
   }
 
-  /* ── FEED ENTRIES ── */
+  /* ── SOUND ENTRY CARDS ── */
   .entry-card {
     background: var(--mute-panel);
     padding: 23.6px;
     margin-bottom: 23.6px;
     transition: transform 0.3s ease;
   }
-  .entry-card:hover {
-    transform: translateX(-5px);
-  }
+  .entry-card:hover { transform: translateX(-5px); }
   .entry-meta {
     font-size: 0.8rem;
     text-transform: uppercase;
@@ -149,15 +268,87 @@
   }
   .entry-title {
     font-size: 1.618rem;
-    margin: 0 0 14.6px 0;
+    margin: 0 0 8px 0;
+  }
+  .entry-species-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14.6px;
+  }
+  .entry-sci-name {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-style: italic;
+    opacity: 0.7;
+  }
+  .entry-iucn-badge {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border: 1px solid currentColor;
+  }
+  .iucn-badge-CR { color: #E60003; background: transparent; border-color: #E60003; }
+  .iucn-badge-EN { color: #FF5500; background: transparent; border-color: #FF5500; }
+  .iucn-badge-VU { color: #b89000; background: transparent; border-color: #b89000; }
+  .iucn-badge-NT { color: #00AAEE; background: transparent; border-color: #00AAEE; }
+  .iucn-badge-LC { color: #00BB55; background: transparent; border-color: #00BB55; }
+  .entry-conf {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    opacity: 0.45;
   }
   .entry-audio {
     width: 100%;
     margin-bottom: 14.6px;
     outline: none;
   }
-  
-  /* Ledger Actions */
+
+  /* ── FOLKLORE CARDS ── */
+  .folklore-card {
+    background: var(--mute-panel);
+    padding: 23.6px;
+    margin-bottom: 23.6px;
+    transition: transform 0.3s ease;
+  }
+  .folklore-card:hover { transform: translateX(-5px); }
+  .folklore-title {
+    font-size: 1.618rem;
+    margin: 0 0 14.6px 0;
+  }
+  .folklore-body {
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin-bottom: 8px;
+    opacity: 0.85;
+    white-space: pre-line;
+  }
+  .folklore-body.truncated {
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .folklore-expand-btn {
+    background: none;
+    border: none;
+    color: var(--mute-text);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    opacity: 0.5;
+    padding: 0;
+    margin-bottom: 14.6px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .folklore-expand-btn:hover { opacity: 1; }
+
+  /* ── LEDGER ACTIONS (shared) ── */
   .ledger-actions {
     display: flex;
     justify-content: space-between;
@@ -182,7 +373,57 @@
     color: var(--mute-base);
   }
 
-  /* Contextual News Box */
+  /* ── CARE / WITNESS RECEIPTS ── */
+  .care-receipt, .witness-receipt {
+    margin-top: var(--s2);
+    padding: var(--s2);
+    border: 1px solid var(--hairline);
+    background: var(--bg-alt);
+  }
+  .care-receipt-note, .witness-receipt-note {
+    font-family: var(--font);
+    font-size: var(--t-sm);
+    color: var(--muted);
+    margin: 0 0 var(--s2) 0;
+  }
+  .care-receipt-ids, .witness-receipt-ids { margin-bottom: var(--s2); }
+  .care-receipt-label, .witness-receipt-label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.55;
+    margin-bottom: 2px;
+    margin-top: 8px;
+  }
+  .care-receipt-val, .witness-receipt-val {
+    display: block;
+    font-family: var(--mono);
+    font-size: var(--t-xs);
+    color: var(--fg);
+    word-break: break-all;
+    user-select: all;
+  }
+  .care-receipt-btn, .witness-receipt-btn {
+    display: inline-block;
+    font-family: var(--font);
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--fg);
+    text-decoration: none;
+    border: 1px solid var(--hairline);
+    padding: 6px 12px;
+    border-radius: var(--sketch-radius);
+    transition: background 0.2s, color 0.2s;
+  }
+  .care-receipt-btn:hover, .witness-receipt-btn:hover {
+    background: var(--fg);
+    color: var(--bg);
+  }
+
+  /* ── CONTEXTUAL NEWS BOX ── */
   .news-box {
     background: var(--bg-alt);
     padding: 14.6px;
@@ -196,35 +437,46 @@
     border-bottom: 1px solid var(--mute-border);
     padding-bottom: 5px;
   }
-  .news-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  .news-list { list-style: none; padding: 0; margin: 0; }
+  .news-list li { margin-bottom: 8px; line-height: 1.4; }
+  .news-list a { color: var(--mute-text); text-decoration: none; font-weight: bold; }
+  .news-list a:hover { text-decoration: underline; }
+  .news-source { font-size: 0.75rem; opacity: 0.7; display: block; }
+  .news-loading { font-style: italic; opacity: 0.6; font-size: 0.85rem; }
+
+  /* ── NEARBY CROSS-REFERENCE BOX ── */
+  .nearby-box {
+    background: var(--bg-alt);
+    padding: 14.6px;
+    font-size: 0.9rem;
+    margin-top: 14.6px;
   }
-  .news-list li {
-    margin-bottom: 8px;
-    line-height: 1.4;
+  .nearby-box h4 {
+    margin: 0 0 10px 0;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--mute-border);
+    padding-bottom: 5px;
   }
-  .news-list a {
+  .nearby-list { list-style: none; padding: 0; margin: 0; }
+  .nearby-list li { margin-bottom: 6px; line-height: 1.4; }
+  .nearby-link {
     color: var(--mute-text);
     text-decoration: none;
     font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    padding: 0;
+    text-align: left;
   }
-  .news-list a:hover {
-    text-decoration: underline;
-  }
-  .news-source {
-    font-size: 0.75rem;
-    opacity: 0.7;
-    display: block;
-  }
-  .news-loading {
-    font-style: italic;
-    opacity: 0.6;
-    font-size: 0.85rem;
-  }
+  .nearby-link:hover { text-decoration: underline; }
+  .nearby-loc { font-size: 0.75rem; opacity: 0.7; display: block; }
 
-  /* ── CUSTOM PINS (LUCIDE ICONS) ── */
+  /* ── MAP PINS ── */
   .map-pin-wrap {
     display: flex;
     justify-content: center;
@@ -242,154 +494,292 @@
     justify-content: center;
     transition: transform 0.2s ease, opacity 0.2s ease;
   }
-  .map-pin-wrap:hover .pin-icon-box {
-    transform: scale(1.25);
-    opacity: 0.8;
-  }
-  /* ── MAP PLACE LABELS ── */
-  .map-label {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--fg);
-    text-shadow: 0 0 4px var(--bg), 0 0 8px var(--bg);
-    pointer-events: none;
-    white-space: nowrap;
-    opacity: 0.75;
-    transform: translate(-50%, -50%);
-  }
-  .map-label-lg { font-size: 13px; opacity: 0.9; }
-  .map-label-sm { font-size: 9px; opacity: 0.55; }
-  .map-label-water {
-    font-style: italic;
-    letter-spacing: 0.18em;
-    opacity: 0.6;
-  }
+  .map-pin-wrap:hover .pin-icon-box { transform: scale(1.25); opacity: 0.8; }
 
-  /* IUCN threat-level pin colors — darkest = most critical */
-  .pin-iucn-CR .pin-icon-box { background: #0a0a0a; color: #f5f2eb; }
-  .pin-iucn-EN .pin-icon-box { background: #2a2a2a; color: #f5f2eb; }
-  .pin-iucn-VU .pin-icon-box { background: #4a4a4a; color: #f5f2eb; }
-  .pin-iucn-NT .pin-icon-box { background: #717171; color: #f5f2eb; }
-  .pin-iucn-LC .pin-icon-box { background: #9a9a9a; color: #1a1a1a; }
-  /* Dark mode: invert scale — brightest = most critical (visible on dark map) */
-  html[data-theme="dark"] .pin-iucn-CR .pin-icon-box { background: #f5f2eb; color: #0a0a0a; }
-  html[data-theme="dark"] .pin-iucn-EN .pin-icon-box { background: #d0cdc6; color: #0a0a0a; }
-  html[data-theme="dark"] .pin-iucn-VU .pin-icon-box { background: #a8a5a0; color: #0a0a0a; }
-  html[data-theme="dark"] .pin-iucn-NT .pin-icon-box { background: #717171; color: #f5f2eb; }
-  html[data-theme="dark"] .pin-iucn-LC .pin-icon-box { background: #4a4a4a; color: #f5f2eb; }
+  /* IUCN threat-level pins — Mondrian palette, high contrast on cream/blue/dark map */
+  .pin-iucn-CR .pin-icon-box { background: #E60003; color: #FBFCF4; }
+  .pin-iucn-EN .pin-icon-box { background: #FF5500; color: #FBFCF4; }
+  .pin-iucn-VU .pin-icon-box { background: #FFCC00; color: #0F0919; }
+  .pin-iucn-NT .pin-icon-box { background: #00AAEE; color: #0F0919; }
+  .pin-iucn-LC .pin-icon-box { background: #00BB55; color: #FBFCF4; }
+
+  /* Story pins — magenta */
+  .story-pin .pin-icon-box {
+    width: 22px;
+    height: 22px;
+    background: #CC00AA;
+    color: #FBFCF4;
+    border: none;
+  }
+  .story-pin:hover .pin-icon-box { transform: scale(1.3); }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="archive-container">
-  
+
   <div class="archive-map-wrapper">
     <div id="archive-map" aria-label="Archive Map View"></div>
+    <div class="arc-map-key">
+      <div class="arc-map-key-row"><div class="arc-map-key-dot" style="background:#E60003"></div>CR — Critically Endangered</div>
+      <div class="arc-map-key-row"><div class="arc-map-key-dot" style="background:#FF5500"></div>EN — Endangered</div>
+      <div class="arc-map-key-row"><div class="arc-map-key-dot" style="background:#FFCC00"></div>VU — Vulnerable</div>
+      <div class="arc-map-key-row"><div class="arc-map-key-dot" style="background:#00AAEE"></div>NT — Near Threatened</div>
+      <div class="arc-map-key-row"><div class="arc-map-key-dot" style="background:#00BB55"></div>LC — Least Concern</div>
+      <div class="arc-map-key-row"><div class="arc-map-key-dot" style="background:#CC00AA"></div>Community Story</div>
+    </div>
   </div>
 
   <div class="archive-feed-wrapper">
-    
-    <div class="archive-header">
-      <h1 class="archive-title">The Sound Ledger</h1>
-      <p class="archive-subtitle">Contribute biological witnesses to the blockchain ledger. Each recording acts as an immutable testimony to the fragile biodiversity of the Aravalli Range. Sign the ledger to verify local presence.</p>
-    </div>
 
-    {% if current_user.is_authenticated %}
-    <div class="upload-section sketchy-box">
-      <h3>Submit a Field Recording</h3>
-      <form action="{{ url_for('upload') }}" method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-          <label>Audio File (.mp3, .wav)</label>
-          <input type="file" name="file" accept="audio/*" required class="sketchy-box">
-        </div>
-        <div class="form-group">
-          <label>Location Name</label>
-          <input type="text" name="location_name" placeholder="e.g., Mangar Bani, Sanjay Van" required class="sketchy-box">
-        </div>
-        <div class="form-group">
-          <label>Species Name (Optional)</label>
-          <input type="text" name="species_name_merlin" placeholder="If known, or leave blank for AI analysis" class="sketchy-box">
-        </div>
-        <div class="form-group">
-          <label>Date of Recording</label>
-          <input type="date" name="recording_date" class="sketchy-box">
-        </div>
-        <button type="submit" class="submit-btn sketchy-box">Anchor to Ledger</button>
-      </form>
-    </div>
-    {% else %}
-    <div class="upload-section sketchy-box" style="text-align:center; padding: 23.6px;">
-      <p style="margin:0 0 14.6px; opacity:0.7; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.08em;">Contributor access required to submit recordings</p>
-      <a href="{{ url_for('login') }}" class="submit-btn sketchy-box" style="display:inline-block; text-decoration:none;">Sign in to contribute →</a>
-    </div>
-    {% endif %}
+    <nav class="archive-tab-nav">
+      <button class="archive-tab-btn active" data-tab="sounds" onclick="switchArchiveTab('sounds', this)">Sound Archive</button>
+      <button class="archive-tab-btn" data-tab="stories" onclick="switchArchiveTab('stories', this)">Story Ledger</button>
+    </nav>
 
-    <div class="entries-list">
-      {% for entry in entries %}
-      <div class="entry-card sketchy-box" id="entry-{{ entry.id }}">
-        
-        <div class="entry-meta">
-          Recorded at {{ entry.location_name }} • {{ entry.timestamp.strftime('%d %b %Y') if entry.timestamp else '' }}
-        </div>
-        
-        <h2 class="entry-title">{{ entry.species_common or 'Unknown Species' }}</h2>
-        
-        <audio class="entry-audio sketchy-box" controls controlsList="nodownload">
-          <source src="{{ url_for('serve_audio', filename=entry.file_path) }}" type="audio/mpeg">
-          Your browser does not support audio playback.
-        </audio>
+    <!-- ══ SOUNDS TAB ══ -->
+    <div id="tab-sounds" class="tab-panel active">
 
-        <div class="ledger-actions">
-          <span>Ledger Signatures: <strong id="sign-count-{{ entry.id }}">{{ care_counts.get(entry.id, 0) }}</strong></span>
-          {% if current_user.is_authenticated %}
-          <button class="sign-btn sketchy-box" onclick="signWitnessLedger({{ entry.id }})">Sign Witness Contract</button>
-          {% else %}
-          <a href="{{ url_for('login') }}" class="sign-btn sketchy-box" style="text-decoration:none;">Sign in to witness</a>
-          {% endif %}
-        </div>
-
-        <div class="news-box sketchy-box" id="news-box-{{ entry.id }}">
-          <h4>Ecological Context (10km Radius • Last 5 Years)</h4>
-          <div class="news-content" id="news-content-{{ entry.id }}">
-            <span class="news-loading">Querying regional environmental records...</span>
-          </div>
-        </div>
-
+      <div class="archive-header">
+        <h1 class="archive-title">The Sound Ledger</h1>
+        <p class="archive-subtitle">Contribute biological witnesses to the blockchain ledger. Each recording acts as an immutable testimony to the fragile biodiversity of the Aravalli Range.</p>
       </div>
-      {% endfor %}
-    </div>
 
-  </div>
+      <div class="archive-intro sketchy-box">
+        <p><strong>A region speaks before it is named.</strong></p>
+        <p>The birds recorded here are not specimens — they are inhabitants. Each sound in this archive is a testimony to presence: a species in a specific place, on a specific morning, in a specific season. They are anchored to coordinates and to time.</p>
+        <p>If you have recorded a sound in the Aravallis or its surrounding ecologies — a call at dawn, a chorus at the edge of a reservoir, a single note in the scrub — upload it here. BirdNET will attempt an identification. The IUCN will locate it within a threat index.</p>
+        <p>Sign the ledger to say: <em>I was there too. I heard this.</em></p>
+      </div>
+
+      {% if current_user.is_authenticated %}
+      <div class="upload-section sketchy-box">
+        <h3>Submit a Field Recording</h3>
+        <form action="{{ url_for('upload') }}" method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-group">
+            <label>Audio File (.mp3, .wav)</label>
+            <input type="file" name="file" accept="audio/*" required class="sketchy-box">
+          </div>
+          <div class="form-group">
+            <label>Location Name</label>
+            <input type="text" id="upload-location" name="location_name" placeholder="e.g., Mangar Bani, Sanjay Van" required class="sketchy-box">
+            <button type="button" class="pick-loc-btn" onclick="pickLocationFor('upload-location')">Pick from map →</button>
+          </div>
+          <div class="form-group">
+            <label>Species Name (Optional)</label>
+            <input type="text" name="species_name_merlin" placeholder="If known, or leave blank for AI analysis" class="sketchy-box">
+          </div>
+          <div class="form-group">
+            <label>Date of Recording</label>
+            <input type="date" name="recording_date" class="sketchy-box">
+          </div>
+          <button type="submit" class="submit-btn sketchy-box">Anchor to Ledger</button>
+        </form>
+      </div>
+      {% else %}
+      <div class="upload-section sketchy-box" style="text-align:center; padding: 23.6px;">
+        <p style="margin:0 0 14.6px; opacity:0.7; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.08em;">Contributor access required to submit recordings</p>
+        <a href="{{ url_for('login') }}" class="submit-btn sketchy-box" style="display:inline-block; text-decoration:none;">Sign in to contribute →</a>
+      </div>
+      {% endif %}
+
+      <div class="entries-list">
+        {% for entry in entries %}
+        <div class="entry-card sketchy-box" id="entry-{{ entry.id }}">
+
+          <div class="entry-meta">
+            Recorded at {{ entry.location_name }} • {{ entry.timestamp.strftime('%d %b %Y') if entry.timestamp else '' }}
+          </div>
+
+          <h2 class="entry-title">{{ entry.species_common or 'Unknown Species' }}</h2>
+          <div class="entry-species-meta">
+            {% if entry.species_sci and entry.species_sci != 'Unknown' %}
+            <span class="entry-sci-name">{{ entry.species_sci }}</span>
+            {% endif %}
+            {% if entry.iucn_status %}
+            <span class="entry-iucn-badge iucn-badge-{{ entry.iucn_status }}">{{ entry.iucn_status }}</span>
+            {% endif %}
+            {% if entry.confidence and entry.confidence > 0 %}
+            <span class="entry-conf">{{ "%.0f"|format(entry.confidence * 100) }}% confidence</span>
+            {% endif %}
+          </div>
+
+          <audio class="entry-audio sketchy-box" controls controlsList="nodownload">
+            <source src="{{ url_for('serve_audio', filename=entry.file_path) }}" type="audio/mpeg">
+            Your browser does not support audio playback.
+          </audio>
+
+          <div class="ledger-actions">
+            <span>Ledger Signatures: <strong id="sign-count-{{ entry.id }}">{{ care_counts.get(entry.id, 0) }}</strong></span>
+            {% if current_user.is_authenticated %}
+            <button class="sign-btn sketchy-box" id="sign-btn-{{ entry.id }}" onclick="signWitnessLedger({{ entry.id }})">Sign Witness Contract</button>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="sign-btn sketchy-box" style="text-decoration:none;">Sign in to witness</a>
+            {% endif %}
+          </div>
+          <div id="care-receipt-{{ entry.id }}" class="care-receipt" style="display:none">
+            <p class="care-receipt-note">Signature anchored. Save these identifiers if you wish to verify your witness record.</p>
+            <div class="care-receipt-ids">
+              <div><span class="care-receipt-label">Transaction ID</span><code id="care-txid-{{ entry.id }}" class="care-receipt-val"></code></div>
+              <div><span class="care-receipt-label">Care Ledger ID</span><code id="care-lid-{{ entry.id }}" class="care-receipt-val"></code></div>
+            </div>
+            <a href="/ledger" class="care-receipt-btn sketchy-box">View Ledger →</a>
+          </div>
+
+          <div class="news-box sketchy-box" id="news-box-{{ entry.id }}">
+            <h4>Ecological Context (10km Radius • Last 5 Years)</h4>
+            <div class="news-content" id="news-content-{{ entry.id }}">
+              <span class="news-loading">Querying regional environmental records...</span>
+            </div>
+          </div>
+
+          <div class="nearby-box sketchy-box" id="nearby-stories-{{ entry.id }}" style="display:none"></div>
+
+        </div>
+        {% endfor %}
+      </div>
+
+    </div><!-- /tab-sounds -->
+
+    <!-- ══ STORIES TAB ══ -->
+    <div id="tab-stories" class="tab-panel">
+
+      <div class="archive-header">
+        <h1 class="archive-title">The Story Ledger</h1>
+        <p class="archive-subtitle">A repository of ecological memory — stories, warnings, and place-knowledge passed through living proximity to these landscapes.</p>
+      </div>
+
+      <div class="archive-intro sketchy-box">
+        <p><strong>A region is not only what it sounds like. It is also what it remembers.</strong></p>
+        <p>Long before maps named these hills, the people who lived among them left records in a different medium — in stories passed between households, in warnings tied to the behaviour of certain trees, in the names given to springs that no longer exist. This archive is an attempt to hold some of that.</p>
+        <p>If you carry a story — heard growing up, passed down, encountered in passing — that has something to do with a place and its living world: a forest, a water body, a rock, an animal, a season, a silence — write it here. It does not need to be ancient. It does not need to be complete.</p>
+        <p>Others who know the same story, or who know the place it comes from, can sign as witnesses — not to verify, but to say: <em>I have also heard this. This is part of what I know of that land.</em></p>
+        <p>The Aravallis are the frame for now. But memory does not respect administrative boundaries. Write from wherever you are listening.</p>
+      </div>
+
+      {% if current_user.is_authenticated %}
+      <div class="upload-section sketchy-box">
+        <h3>Submit a Story</h3>
+        <form action="{{ url_for('folklore_submit') }}" method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" name="title" placeholder="A name for this story or memory" required class="sketchy-box">
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <input type="text" id="story-location" name="location_name" placeholder="e.g., Mangar Bani, Tughlaqabad, Bhati Mines" class="sketchy-box">
+            <button type="button" class="pick-loc-btn" onclick="pickLocationFor('story-location')">Pick from map →</button>
+          </div>
+          <div class="form-group">
+            <label>Write your story</label>
+            <textarea name="body" placeholder="Write here..." class="sketchy-box"></textarea>
+          </div>
+          <div class="form-divider">— or upload a .txt file —</div>
+          <div class="form-group">
+            <label>Upload Document (.txt)</label>
+            <input type="file" name="file" accept=".txt" class="sketchy-box">
+          </div>
+          <button type="submit" class="submit-btn sketchy-box">Anchor to Ledger</button>
+        </form>
+      </div>
+      {% else %}
+      <div class="upload-section sketchy-box" style="text-align:center; padding: 23.6px;">
+        <p style="margin:0 0 14.6px; opacity:0.7; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.08em;">Contributor access required to submit stories</p>
+        <a href="{{ url_for('login') }}" class="submit-btn sketchy-box" style="display:inline-block; text-decoration:none;">Sign in to contribute →</a>
+      </div>
+      {% endif %}
+
+      <div class="folklore-list">
+        {% for fe in folklore_entries %}
+        <div class="folklore-card sketchy-box" id="folklore-{{ fe.id }}">
+
+          <div class="entry-meta">
+            {{ fe.location_name }}{% if fe.location_name and fe.timestamp %} • {% endif %}{{ fe.timestamp.strftime('%d %b %Y') if fe.timestamp else '' }}
+          </div>
+
+          <h2 class="folklore-title">{{ fe.title }}</h2>
+          <div class="folklore-body truncated" id="folklore-body-{{ fe.id }}">{{ fe.body }}</div>
+          <button class="folklore-expand-btn" id="folklore-expand-{{ fe.id }}" onclick="toggleFolkloreExpand({{ fe.id }})">Read more</button>
+
+          <div class="ledger-actions">
+            <span>Witnesses: <strong id="witness-count-{{ fe.id }}">{{ witness_counts.get(fe.id, 0) }}</strong></span>
+            {% if current_user.is_authenticated %}
+            <button class="sign-btn sketchy-box" id="witness-btn-{{ fe.id }}" onclick="signFolkloreWitness({{ fe.id }})">I have heard this</button>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="sign-btn sketchy-box" style="text-decoration:none;">Sign in to witness</a>
+            {% endif %}
+          </div>
+
+          <div id="witness-receipt-{{ fe.id }}" class="witness-receipt" style="display:none">
+            <p class="witness-receipt-note">Witness recorded. Save these identifiers if you wish to verify your entry in the ledger.</p>
+            <div class="witness-receipt-ids">
+              <div><span class="witness-receipt-label">Witness Token</span><code id="witness-token-{{ fe.id }}" class="witness-receipt-val"></code></div>
+              <div><span class="witness-receipt-label">Ledger ID</span><code id="witness-lid-{{ fe.id }}" class="witness-receipt-val"></code></div>
+            </div>
+            <a href="/ledger" class="witness-receipt-btn sketchy-box">View Ledger →</a>
+          </div>
+
+          <div class="nearby-box sketchy-box" id="nearby-sounds-{{ fe.id }}" style="display:none"></div>
+
+        </div>
+        {% endfor %}
+
+        {% if not folklore_entries %}
+        <p style="opacity:0.4; font-size:0.9rem; text-align:center; padding: 38.2px 0;">No stories have been anchored yet. Be the first to contribute.</p>
+        {% endif %}
+      </div>
+
+    </div><!-- /tab-stories -->
+
+  </div><!-- /archive-feed-wrapper -->
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 
 <script>
-// Parse the JSON data passed from app.py
-const entriesData = {{ entries_json | safe }};
-const IUCN_COLORS = { 'CR': '#0a0a0a', 'EN': '#2a2a2a', 'VU': '#4a4a4a', 'NT': '#717171', 'LC': '#9a9a9a' };
+// ── CSRF helper ─────────────────────────────────────────────────────────────
+function getCsrfToken() {
+  const m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
+const entriesData  = {{ entries_json | tojson }};
+const folkloreData = {{ folklore_json | tojson }};
+const IUCN_COLORS  = { 'CR': '#E60003', 'EN': '#FF5500', 'VU': '#FFCC00', 'NT': '#00AAEE', 'LC': '#00BB55' };
+
+// ── Location picker (global so onclick= can reach it) ────────────────────────
+let _pickTarget  = null;
+let _archiveMap  = null;  // set after DOMContentLoaded map init
+
+function pickLocationFor(fieldId) {
+  if (!_archiveMap) return;
+  _pickTarget = fieldId;
+  _archiveMap.getCanvas().style.cursor = 'crosshair';
+  document.getElementById('pick-hint').style.display = 'block';
+}
 
 // Lucide SVG paths (inline — no CDN dependency)
 const LUCIDE_SVG = {
-  bird: `<path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/>`,
-  trees: `<path d="M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z"/><path d="M7 16v6"/><path d="M13 19v3"/><path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.6l-3-4a1 1 0 0 0-1.6 0l-3 4a1 1 0 0 0 .8 1.6H10"/>`,
-  skull: `<path d="m12.5 17-.5-1-.5 1h1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 7 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/>`,
-  stone: `<path d="M2 10c0-4.4 4-8 10-8s10 3.6 10 8c0 3.6-2 7-6 8.5C12 20 2 18 2 10Z"/><path d="M10 14c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2Z"/><path d="M16 10c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2Z"/>`,
+  bird:        `<path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/>`,
+  trees:       `<path d="M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z"/><path d="M7 16v6"/><path d="M13 19v3"/><path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.6l-3-4a1 1 0 0 0-1.6 0l-3 4a1 1 0 0 0 .8 1.6H10"/>`,
+  skull:       `<path d="m12.5 17-.5-1-.5 1h1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 7 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/>`,
+  stone:       `<path d="M2 10c0-4.4 4-8 10-8s10 3.6 10 8c0 3.6-2 7-6 8.5C12 20 2 18 2 10Z"/><path d="M10 14c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2Z"/><path d="M16 10c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2Z"/>`,
+  'book-open': `<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>`,
 };
 
-function makeLucidePin(iconKey, iucnStatus) {
+function makeLucidePin(iconKey, iucnStatus, isStory) {
   const paths = LUCIDE_SVG[iconKey] || LUCIDE_SVG.bird;
   const el = document.createElement('div');
-  el.className = 'map-pin-wrap' + (iucnStatus ? ` pin-iucn-${iucnStatus}` : '');
-  el.innerHTML = `
-    <div class="pin-icon-box">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">${paths}</svg>
-    </div>`;
+  el.className = 'map-pin-wrap'
+    + (isStory ? ' story-pin' : '')
+    + (!isStory && iucnStatus ? ' pin-iucn-' + iucnStatus : '');
+  el.innerHTML = `<div class="pin-icon-box">
+    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">${paths}</svg>
+  </div>`;
   return el;
 }
 
@@ -400,143 +790,344 @@ function getPinType(rec) {
   return 'bird';
 }
 
+// ── Tab switching ──────────────────────────────────────────────────────────────
+function switchArchiveTab(tabName, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.archive-tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tabName).classList.add('active');
+  btn.classList.add('active');
+  history.replaceState(null, '', '#' + tabName);
+}
+
+// ── Story body expand / collapse ───────────────────────────────────────────────
+function toggleFolkloreExpand(id) {
+  const body = document.getElementById('folklore-body-' + id);
+  const btn  = document.getElementById('folklore-expand-' + id);
+  if (body.classList.contains('truncated')) {
+    body.classList.remove('truncated');
+    btn.textContent = 'Read less';
+  } else {
+    body.classList.add('truncated');
+    btn.textContent = 'Read more';
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function() {
-    
-    // 1. Initialize MapLibre Map
-    const map = new maplibregl.Map({
-        container: 'archive-map',
-        style: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
-        center: [77.22, 28.48], 
-        zoom: 10,
-        attributionControl: false
+
+  // Restore tab from URL hash
+  const hash = window.location.hash.replace('#', '');
+  if (hash === 'stories') {
+    const btn = document.querySelector('[data-tab="stories"]');
+    if (btn) switchArchiveTab('stories', btn);
+  }
+
+  // ── Map init ────────────────────────────────────────────────────────────────
+  // Bounding box: Delhi epicentre (77.209°E, 28.614°N), ~600km radius
+  const DELHI_BOUNDS = [[71.0, 22.5], [83.5, 35.0]];
+
+  const map = new maplibregl.Map({
+    container: 'archive-map',
+    style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    center: [77.22, 28.48],
+    zoom: 10,
+    minZoom: 5,
+    maxBounds: DELHI_BOUNDS,
+    attributionControl: false
+  });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  _archiveMap = map;
+
+  // ── Location picker map click handler ───────────────────────────────────────
+  map.on('click', function(e) {
+    if (!_pickTarget) return;
+    const lat = e.lngLat.lat.toFixed(6);
+    const lng = e.lngLat.lng.toFixed(6);
+    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json&zoom=10', {
+      headers: { 'Accept-Language': 'en' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      const a = data.address || {};
+      const region = a.suburb || a.quarter || a.neighbourhood || a.village || a.town || a.city_district || a.county || a.district || '';
+      const state   = a.state || '';
+      const country = a.country || '';
+      const parts = [region, state, country].filter(Boolean);
+      const field = document.getElementById(_pickTarget);
+      if (field) field.value = parts.join(', ');
+      _pickTarget = null;
+      map.getCanvas().style.cursor = '';
+      document.getElementById('pick-hint').style.display = 'none';
+    })
+    .catch(function() {
+      _pickTarget = null;
+      map.getCanvas().style.cursor = '';
+      document.getElementById('pick-hint').style.display = 'none';
     });
+  });
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-
-    // Theme-aware map palette
-    const MAP_COLORS = {
-        light: { bg: '#f5f2eb', waterFill: '#d8d5ce', waterLine: '#c5c2bb', line: '#d0cdc6' },
-        dark:  { bg: '#1c1c1c', waterFill: '#141414', waterLine: '#202020', line: '#2a2a2a' }
+  // ── LINE SCHEME MAP STYLE (Snazzy Maps #139756 palette → MapLibre GL) ──
+  function applyMondrianStyle() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const M = isDark ? {
+      bg:       '#111111',
+      land:     '#111111',
+      water:    '#004466',
+      waterLine:'#004466',
+      park:     '#111111',
+      building: '#1e1e1e',
+      road:     '#c0c0c0',
+    } : {
+      bg:       '#ffffff',
+      land:     '#ffffff',
+      water:    '#00ccff',
+      waterLine:'#00ccff',
+      park:     '#ffffff',
+      building: '#e8e8e8',
+      road:     '#424242',
     };
-    function applyMapTheme() {
-        const c = document.documentElement.getAttribute('data-theme') === 'dark' ? MAP_COLORS.dark : MAP_COLORS.light;
-        map.getStyle().layers.forEach(layer => {
-            if (layer.id.includes('water')) {
-                if (layer.type === 'fill') map.setPaintProperty(layer.id, 'fill-color', c.waterFill);
-                if (layer.type === 'line') map.setPaintProperty(layer.id, 'line-color', c.waterLine);
-            } else if (layer.type === 'background') {
-                map.setPaintProperty(layer.id, 'background-color', c.bg);
-            } else if (layer.type === 'fill') {
-                map.setPaintProperty(layer.id, 'fill-color', c.bg);
-            } else if (layer.type === 'line') {
-                map.setPaintProperty(layer.id, 'line-color', c.line);
-            }
-        });
-    }
-    map.on('style.load', applyMapTheme);
-    new MutationObserver(() => { if (map.isStyleLoaded()) applyMapTheme(); })
-        .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
-    // Place labels (major regions — no street labels)
-    const PLACE_LABELS = [
-        { coords: [77.209, 28.664], name: 'Delhi',           cls: 'map-label-lg' },
-        { coords: [77.301, 28.535], name: 'Yamuna',          cls: 'map-label-water' },
-        { coords: [77.236, 28.548], name: 'Greater Kailash', cls: 'map-label-sm' },
-        { coords: [77.182, 28.506], name: 'Mehrauli',        cls: 'map-label-sm' },
-        { coords: [77.169, 28.497], name: 'Chattarpur',      cls: 'map-label-sm' },
-        { coords: [77.157, 28.523], name: 'Vasant Kunj',     cls: 'map-label-sm' },
-        { coords: [77.257, 28.511], name: 'Tughlaqabad',     cls: 'map-label-sm' },
-        { coords: [77.022, 28.459], name: 'Gurugram',        cls: '' },
-        { coords: [77.312, 28.405], name: 'Faridabad',       cls: '' },
-        { coords: [77.118, 28.362], name: 'Mangar Bani',     cls: 'map-label-sm' },
-        { coords: [77.082, 28.455], name: 'Aravalli Ridge',  cls: 'map-label-water' },
-    ];
-    PLACE_LABELS.forEach(({ coords, name, cls }) => {
-        const el = document.createElement('div');
-        el.className = 'map-label' + (cls ? ' ' + cls : '');
-        el.textContent = name;
-        new maplibregl.Marker({ element: el, anchor: 'center' })
-            .setLngLat(coords)
-            .addTo(map);
-    });
-
-    // 2. Plot Markers from Entries Data
-    entriesData.forEach(rec => {
-        if (rec.lat && rec.lng) {
-            const status = rec.iucn || 'LC';
-            const color  = IUCN_COLORS[status] || '#9a9a9a';
-            const type   = getPinType(rec);
-            const el     = makeLucidePin(type, status);
-
-            // Scroll feed to the corresponding entry when map pin is clicked
-            el.addEventListener('click', () => {
-                const card = document.getElementById(`entry-${rec.id}`);
-                if(card) {
-                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    card.style.border = `2px solid ${color}`;
-                    setTimeout(() => card.style.border = '1px solid var(--mute-border)', 2000);
-                }
-            });
-
-            new maplibregl.Marker({ element: el })
-                .setLngLat([rec.lng, rec.lat])
-                .addTo(map);
+    map.getStyle().layers.forEach(function(layer) {
+      const id = layer.id.toLowerCase();
+      try {
+        if (layer.type === 'symbol') {
+          map.setLayoutProperty(layer.id, 'visibility', 'none');
+        } else if (layer.type === 'background') {
+          map.setPaintProperty(layer.id, 'background-color', M.bg);
+        } else if (layer.type === 'fill') {
+          let fillColor;
+          if (id.includes('water') || id.includes('ocean') || id.includes('lake') || id.includes('reservoir')) {
+            fillColor = M.water;
+          } else if (id.includes('park') || id.includes('grass') || id.includes('wood') || id.includes('landcover') || id.includes('landuse') || id.includes('scrub') || id.includes('nature') || id.includes('leisure') || id.includes('green')) {
+            fillColor = M.park;
+          } else if (id.includes('building') || id.includes('structure')) {
+            fillColor = M.building;
+          } else {
+            fillColor = M.land;
+          }
+          map.setPaintProperty(layer.id, 'fill-color', fillColor);
+          try { map.setPaintProperty(layer.id, 'fill-outline-color', fillColor); } catch(e) {}
+        } else if (layer.type === 'line') {
+          if (id.includes('water') || id.includes('waterway') || id.includes('river')) {
+            map.setPaintProperty(layer.id, 'line-color', M.waterLine);
+          } else {
+            map.setPaintProperty(layer.id, 'line-color', M.road);
+          }
         }
+      } catch(e) {}
     });
+  }
+  map.on('style.load', function() { applyMondrianStyle(); });
+  new MutationObserver(() => { if (map.isStyleLoaded()) { applyMondrianStyle(); } })
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-    // 3. Fetch Contextual News for Each Entry
-    // We delay the fetch slightly for each to avoid slamming the API rate limits at once
-    entriesData.forEach((rec, index) => {
-        setTimeout(() => {
-            fetch(`/get_context_news?location=${encodeURIComponent(rec.location_name)}`)
-            .then(res => res.json())
-            .then(data => {
-                const container = document.getElementById(`news-content-${rec.id}`);
-                if (data.articles && data.articles.length > 0) {
-                    let html = '<ul class="news-list">';
-                    // Show top 3 context articles
-                    data.articles.slice(0, 3).forEach(art => {
-                        let sourceName = art.source.name || 'Local Report';
-                        html += `<li><a href="${art.url}" target="_blank">${art.title}</a> <span class="news-source">${sourceName}</span></li>`;
-                    });
-                    html += '</ul>';
-                    container.innerHTML = html;
-                } else {
-                    container.innerHTML = '<span class="news-loading">No environmental records logged in this radius.</span>';
-                }
-            })
-            .catch(err => {
-                document.getElementById(`news-content-${rec.id}`).innerHTML = '<span class="news-loading">Unable to retrieve registry data.</span>';
-            });
-        }, index * 400); // 400ms stagger between API calls
+  // ── Sound pins ──────────────────────────────────────────────────────────────
+  entriesData.forEach(rec => {
+    if (!rec.lat || !rec.lng) return;
+    const status = rec.iucn || 'LC';
+    const color  = IUCN_COLORS[status] || '#9a9a9a';
+    const el     = makeLucidePin(getPinType(rec), status, false);
+    el.addEventListener('click', () => {
+      const soundsBtn = document.querySelector('[data-tab="sounds"]');
+      if (!document.getElementById('tab-sounds').classList.contains('active'))
+        switchArchiveTab('sounds', soundsBtn);
+      const card = document.getElementById('entry-' + rec.id);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.border = '2px solid ' + color;
+        setTimeout(() => card.style.border = '1px solid var(--mute-border)', 2000);
+      }
     });
+    new maplibregl.Marker({ element: el }).setLngLat([rec.lng, rec.lat]).addTo(map);
+  });
+
+  // ── Story pins ──────────────────────────────────────────────────────────────
+  folkloreData.forEach(fe => {
+    if (!fe.lat || !fe.lng) return;
+    const el = makeLucidePin('book-open', null, true);
+    el.addEventListener('click', () => {
+      const storiesBtn = document.querySelector('[data-tab="stories"]');
+      if (!document.getElementById('tab-stories').classList.contains('active'))
+        switchArchiveTab('stories', storiesBtn);
+      const card = document.getElementById('folklore-' + fe.id);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.border = '2px solid var(--fg)';
+        setTimeout(() => card.style.border = '1px solid var(--mute-border)', 2000);
+      }
+    });
+    new maplibregl.Marker({ element: el }).setLngLat([fe.lng, fe.lat]).addTo(map);
+  });
+
+  // ── News fetch (sound entries) ───────────────────────────────────────────────
+  const uniqueLocations = [...new Set(entriesData.map(r => r.location_name).filter(Boolean))];
+  if (uniqueLocations.length > 0) {
+    fetch('/get_context_news_batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ locations: uniqueLocations })
+    })
+    .then(res => res.json())
+    .then(batchData => {
+      entriesData.forEach(rec => {
+        const container = document.getElementById('news-content-' + rec.id);
+        if (!container) return;
+        const data = batchData[rec.location_name] || {};
+        if (data.articles && data.articles.length > 0) {
+          let html = '<ul class="news-list">';
+          data.articles.slice(0, 3).forEach(art => {
+            const sourceName = art.source.name || 'Local Report';
+            html += `<li><a href="${art.url}" target="_blank">${art.title}</a> <span class="news-source">${sourceName}</span></li>`;
+          });
+          html += '</ul>';
+          container.innerHTML = html;
+        } else {
+          container.innerHTML = '<span class="news-loading">No environmental records logged in this radius.</span>';
+        }
+      });
+    })
+    .catch(() => {
+      entriesData.forEach(rec => {
+        const c = document.getElementById('news-content-' + rec.id);
+        if (c) c.innerHTML = '<span class="news-loading">Unable to retrieve registry data.</span>';
+      });
+    });
+  }
 });
 
-// 4. Ledger Signature Logic
+// ── Sound witness signing ──────────────────────────────────────────────────────
 window.signWitnessLedger = function(entryId) {
-    fetch('/care/sign/' + entryId, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ location_verified: true })
-    })
-    .then(r => { 
-        if(r.status === 401) { 
-            alert("The ledger requires a witness identity. Please log in."); 
-            window.location.href='/login'; 
-            return null;
-        } 
-        return r.json(); 
-    })
-    .then(data => {
-        if(data && data.status === 'signed') {
-            alert("Your witness signature has been anchored to the ledger.\\nCare Token: " + data.care_token);
-            let countEl = document.getElementById('sign-count-' + entryId);
-            if(countEl) countEl.innerText = data.count;
-        } else if(data && data.status === 'already_signed') {
-            alert("The ledger records that you have already witnessed this recording.");
-        }
-    })
-    .catch(e => console.error("Ledger error:", e));
+  fetch('/care/sign/' + entryId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+    body: JSON.stringify({ location_verified: true })
+  })
+  .then(r => {
+    if (r.status === 401) {
+      alert("The ledger requires a witness identity. Please log in.");
+      window.location.href = '/login';
+      return null;
+    }
+    return r.json();
+  })
+  .then(data => {
+    if (!data) return;
+    if (data.status === 'signed') {
+      document.getElementById('sign-count-' + entryId).innerText = data.count;
+      document.getElementById('sign-btn-' + entryId).style.display = 'none';
+      document.getElementById('care-txid-' + entryId).textContent = data.care_token;
+      document.getElementById('care-lid-' + entryId).textContent = data.care_id;
+      document.getElementById('care-receipt-' + entryId).style.display = 'block';
+    } else if (data.status === 'already_signed') {
+      alert("The ledger records that you have already witnessed this recording.");
+    }
+  })
+  .catch(e => console.error("Ledger error:", e));
+};
+
+// ── Nearby cross-references (5km) ─────────────────────────────────────────
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function scrollToStory(id) {
+  const btn = document.querySelector('[data-tab="stories"]');
+  if (!document.getElementById('tab-stories').classList.contains('active'))
+    switchArchiveTab('stories', btn);
+  setTimeout(() => {
+    const c = document.getElementById('folklore-' + id);
+    if (c) {
+      c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      c.style.border = '2px solid var(--fg)';
+      setTimeout(() => c.style.border = '1px solid var(--mute-border)', 2000);
+    }
+  }, 100);
+}
+
+function scrollToSound(id) {
+  const btn = document.querySelector('[data-tab="sounds"]');
+  if (!document.getElementById('tab-sounds').classList.contains('active'))
+    switchArchiveTab('sounds', btn);
+  setTimeout(() => {
+    const c = document.getElementById('entry-' + id);
+    if (c) {
+      c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      c.style.border = '2px solid var(--mute-text)';
+      setTimeout(() => c.style.border = '1px solid var(--mute-border)', 2000);
+    }
+  }, 100);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Nearby stories for each sound entry
+  entriesData.forEach(function(rec) {
+    if (!rec.lat || !rec.lng) return;
+    var nearby = folkloreData.filter(function(fe) {
+      return fe.lat && fe.lng && haversineKm(rec.lat, rec.lng, fe.lat, fe.lng) <= 5;
+    });
+    var box = document.getElementById('nearby-stories-' + rec.id);
+    if (!box || nearby.length === 0) return;
+    var html = '<h4>Stories from this region (' + nearby.length + ' within 5km)</h4><ul class="nearby-list">';
+    nearby.forEach(function(fe) {
+      html += '<li><button class="nearby-link" onclick="scrollToStory(' + fe.id + ')">' + fe.title + '</button>' +
+              (fe.location_name ? '<span class="nearby-loc">' + fe.location_name + '</span>' : '') + '</li>';
+    });
+    html += '</ul>';
+    box.innerHTML = html;
+    box.style.display = 'block';
+  });
+
+  // Nearby sounds for each folklore entry
+  folkloreData.forEach(function(fe) {
+    if (!fe.lat || !fe.lng) return;
+    var nearby = entriesData.filter(function(rec) {
+      return rec.lat && rec.lng && haversineKm(fe.lat, fe.lng, rec.lat, rec.lng) <= 5;
+    });
+    var box = document.getElementById('nearby-sounds-' + fe.id);
+    if (!box || nearby.length === 0) return;
+    var html = '<h4>Sounds from this region (' + nearby.length + ' within 5km)</h4><ul class="nearby-list">';
+    nearby.forEach(function(rec) {
+      html += '<li><button class="nearby-link" onclick="scrollToSound(' + rec.id + ')">' + rec.species_common + '</button>' +
+              (rec.location_name ? '<span class="nearby-loc">' + rec.location_name + '</span>' : '') + '</li>';
+    });
+    html += '</ul>';
+    box.innerHTML = html;
+    box.style.display = 'block';
+  });
+});
+
+// ── Folklore witness signing ───────────────────────────────────────────────────
+window.signFolkloreWitness = function(entryId) {
+  fetch('/folklore/witness/' + entryId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() }
+  })
+  .then(r => {
+    if (r.status === 401) {
+      alert("The ledger requires a witness identity. Please log in.");
+      window.location.href = '/login';
+      return null;
+    }
+    return r.json();
+  })
+  .then(data => {
+    if (!data) return;
+    if (data.status === 'witnessed') {
+      document.getElementById('witness-count-' + entryId).innerText = data.count;
+      document.getElementById('witness-btn-' + entryId).style.display = 'none';
+      document.getElementById('witness-token-' + entryId).textContent = data.token;
+      document.getElementById('witness-lid-' + entryId).textContent = data.witness_id;
+      document.getElementById('witness-receipt-' + entryId).style.display = 'block';
+    } else if (data.status === 'already_witnessed') {
+      alert("The ledger records that you have already witnessed this story.");
+    }
+  })
+  .catch(e => console.error("Witness error:", e));
 };
 </script>
+<div id="pick-hint">Click anywhere on the map to select a location</div>
 {% endblock %}

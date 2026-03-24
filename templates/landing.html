@@ -2,12 +2,13 @@
 {% block title %}Mapping Dissonance - The Aravalli Atlas{% endblock %}
 
 {% block head %}
-<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preload" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet"></noscript>
 
 <style>
   /* ── LANDING PAGE LOCAL VARS — chain to global theme ── */
   :root {
-    --sketch-radius: 2px 255px 3px 25px / 255px 5px 225px 3px;
     --mute-base:   var(--bg);
     --mute-panel:  var(--bg-alt);
     --mute-border: var(--hairline);
@@ -17,7 +18,7 @@
 
   .sketchy-box {
     border: var(--box-border);
-    border-radius: var(--sketch-radius);
+    border-radius: 0;
   }
 
   /* ── GIF PRELOADER ── */
@@ -265,18 +266,17 @@
     opacity: 0.6;
   }
 
-  /* IUCN threat-level pin colors — darkest = most critical */
-  .pin-iucn-CR .pin-icon-box { background: #0a0a0a; color: #f5f2eb; }
-  .pin-iucn-EN .pin-icon-box { background: #2a2a2a; color: #f5f2eb; }
-  .pin-iucn-VU .pin-icon-box { background: #4a4a4a; color: #f5f2eb; }
-  .pin-iucn-NT .pin-icon-box { background: #717171; color: #f5f2eb; }
-  .pin-iucn-LC .pin-icon-box { background: #9a9a9a; color: #1a1a1a; }
-  /* Dark mode: invert scale — brightest = most critical */
-  html[data-theme="dark"] .pin-iucn-CR .pin-icon-box { background: #f5f2eb; color: #0a0a0a; }
-  html[data-theme="dark"] .pin-iucn-EN .pin-icon-box { background: #d0cdc6; color: #0a0a0a; }
-  html[data-theme="dark"] .pin-iucn-VU .pin-icon-box { background: #a8a5a0; color: #0a0a0a; }
-  html[data-theme="dark"] .pin-iucn-NT .pin-icon-box { background: #717171; color: #f5f2eb; }
-  html[data-theme="dark"] .pin-iucn-LC .pin-icon-box { background: #4a4a4a; color: #f5f2eb; }
+  /* IUCN threat-level pins — Mondrian palette, high contrast on cream/blue/dark map */
+  .pin-iucn-CR  .pin-icon-box { background: #E60003; color: #FBFCF4; }   /* Mondrian red */
+  .pin-iucn-EN  .pin-icon-box { background: #FF5500; color: #FBFCF4; }   /* orange-red */
+  .pin-iucn-VU  .pin-icon-box { background: #FFCC00; color: #0F0919; }   /* Mondrian yellow, dark icon */
+  .pin-iucn-NT  .pin-icon-box { background: #00AAEE; color: #0F0919; }   /* bright cyan-blue */
+  .pin-iucn-LC  .pin-icon-box { background: #00BB55; color: #FBFCF4; }   /* bright green */
+  /* Category pins */
+  .pin-cat-eco   .pin-icon-box { background: #00BB55; color: #FBFCF4; }  /* green */
+  .pin-cat-crit  .pin-icon-box { background: #E60003; color: #FBFCF4; }  /* Mondrian red */
+  .pin-cat-folk  .pin-icon-box { background: #FF8800; color: #0F0919; }  /* amber */
+  .pin-cat-story .pin-icon-box { background: #CC00AA; color: #FBFCF4; } /* magenta — no Mondrian color uses it */
   .legend-icon-svg {
     display: inline-flex;
     align-items: center;
@@ -284,77 +284,93 @@
     flex-shrink: 0;
   }
 
-  /* ── SLIDE-OUT SIDE PANEL ── */
+  /* ── MAP OVERLAY MODAL ── */
+  #panel-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 1999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  #panel-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
   #side-panel {
     position: fixed;
-    /* Adjusted top to avoid covering the header (assuming ~85px header height) */
-    top: 85px; 
-    right: -38.2vw;
-    width: 38.2vw; /* Golden ratio width */
-    min-width: 350px;
-    max-width: 480px;
-    height: calc(100vh - 85px);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.97);
+    width: min(640px, 92vw);
+    max-height: 80vh;
     background: var(--mute-panel);
     color: var(--mute-text);
-    border-left: var(--box-border);
-    border-top: var(--box-border); /* Top border for distinction */
+    border: var(--box-border);
     z-index: 2000;
-    transition: right 0.6s cubic-bezier(0.22, 1, 0.36, 1);
     overflow-y: auto;
-    padding: 38.2px;
-    backdrop-filter: blur(12px);
-    box-shadow: -10px 0 30px rgba(0,0,0,0.05);
+    padding: 38px 42px 42px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease, transform 0.28s ease;
   }
   #side-panel.open {
-    right: 0;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
   }
 
   .panel-close {
     position: absolute;
-    top: 23.6px; right: 23.6px;
-    font-size: 1.2rem;
+    top: 16px; right: 20px;
+    font-size: 1.1rem;
     cursor: pointer;
     background: none;
     border: none;
     font-weight: bold;
     color: inherit;
     font-family: inherit;
-    opacity: 0.6;
-    transition: opacity 0.3s;
+    opacity: 0.5;
+    transition: opacity 0.2s;
   }
-  .panel-close:hover {
-    opacity: 1;
-  }
+  .panel-close:hover { opacity: 1; }
   .panel-category {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
-    margin-bottom: 14.6px;
+    letter-spacing: 0.14em;
+    margin-bottom: 10px;
     font-weight: bold;
+    opacity: 0.7;
   }
   .panel-title {
-    font-size: 2rem;
-    margin: 0 0 23.6px 0;
+    font-size: 1.6rem;
+    margin: 0 0 20px 0;
     border-bottom: var(--box-border);
-    padding-bottom: 14.6px;
+    padding-bottom: 14px;
+    line-height: 1.3;
   }
   .panel-body {
-    font-size: 1rem;
+    font-size: 0.95rem;
     line-height: 1.618;
-    margin-bottom: 38.2px;
+    margin-bottom: 24px;
   }
+  .panel-body p { margin-bottom: 10px; }
   .panel-audio-box {
-    padding: 23.6px;
-    margin-top: 23.6px;
-    background: rgba(255,255,255,0.4);
+    padding: 20px;
+    margin-top: 16px;
+    background: var(--mute-base);
+    border: var(--box-border);
   }
   .panel-audio-box audio {
     width: 100%;
-    margin-bottom: 23.6px;
+    margin-bottom: 16px;
     outline: none;
   }
   .ledger-data {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -408,7 +424,7 @@ And the pride of a soul that has conquered fate.
       </div>
     </div>
 
-    <button id="enter-btn" class="enter-btn sketchy-box">Listen to the Origins</button>
+    <button id="enter-btn" class="enter-btn sketchy-box">Enter</button>
   </div>
 </div>
 
@@ -416,41 +432,44 @@ And the pride of a soul that has conquered fate.
   <div id="parchment-map" aria-label="Aravalli Ridge Interactive Map"></div>
 
   <div class="sketch-legend sketchy-box">
-    <div class="legend-title">The Atlas Key</div>
+    <div class="legend-title">Key</div>
     
     <div class="legend-item" onclick="toggleLayer('eco', this)">
-      <span class="legend-icon-svg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z"/><path d="M7 16v6"/><path d="M13 19v3"/><path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.6l-3-4a1 1 0 0 0-1.6 0l-3 4a1 1 0 0 0 .8 1.6H10"/></svg></span> Ecological Green Zone
+      <span class="legend-icon-svg"><span style="display:inline-block;width:10px;height:10px;background:#00BB55;margin-right:8px;flex-shrink:0;"></span></span> Ecological Green Zone
     </div>
     <div class="legend-item" onclick="toggleLayer('crit', this)">
-      <span class="legend-icon-svg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 7 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/></svg></span> Critical Red Zone
+      <span class="legend-icon-svg"><span style="display:inline-block;width:10px;height:10px;background:#E60003;margin-right:8px;flex-shrink:0;"></span></span> Critical Red Zone
     </div>
     <div class="legend-item" onclick="toggleLayer('folk', this)">
-      <span class="legend-icon-svg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10c0-4.4 4-8 10-8s10 3.6 10 8c0 3.6-2 7-6 8.5C12 20 2 18 2 10Z"/><circle cx="9" cy="12" r="1"/><circle cx="14" cy="10" r="1"/></svg></span> Folklore & Legend
+      <span class="legend-icon-svg"><span style="display:inline-block;width:10px;height:10px;background:#FF8800;margin-right:8px;flex-shrink:0;"></span></span> Folklore & Legend
+    </div>
+    <div class="legend-item" onclick="toggleLayer('story', this)">
+      <span class="legend-icon-svg"><span style="display:inline-block;width:10px;height:10px;background:#CC00AA;margin-right:8px;flex-shrink:0;"></span></span> Community Stories
     </div>
 
     <div class="legend-divider">Sound Archive (IUCN)</div>
 
     <div class="legend-item" onclick="toggleLayer('CR', this)">
-      <span class="legend-icon-svg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></span> Critically Endangered
+      <span class="legend-icon-svg"><span style="display:inline-block;width:10px;height:10px;background:#E60003;margin-right:8px;flex-shrink:0;"></span></span> Critically Endangered
     </div>
     <div class="legend-item" onclick="toggleLayer('EN', this)">
-      <span class="legend-icon-svg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></span> Endangered
+      <span class="legend-icon-svg"><span style="display:inline-block;width:10px;height:10px;background:#FF5500;margin-right:8px;flex-shrink:0;"></span></span> Endangered
     </div>
     <div class="legend-item" onclick="toggleLayer('VU', this)">
-      <span class="legend-icon-svg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></span> Vulnerable
+      <span class="legend-icon-svg"><span style="display:inline-block;width:10px;height:10px;background:#FFCC00;margin-right:8px;flex-shrink:0;"></span></span> Vulnerable
     </div>
     <div class="legend-item" onclick="toggleLayer('NT', this)">
-      <span class="legend-icon-svg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></span> Near Threatened
+      <span class="legend-icon-svg"><span style="display:inline-block;width:10px;height:10px;background:#00AAEE;margin-right:8px;flex-shrink:0;"></span></span> Near Threatened
     </div>
     <div class="legend-item" onclick="toggleLayer('LC', this)">
-      <span class="legend-icon-svg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></span> Least Concern
+      <span class="legend-icon-svg"><span style="display:inline-block;width:10px;height:10px;background:#00BB55;margin-right:8px;flex-shrink:0;"></span></span> Least Concern
     </div>
   </div>
 
-  <div id="side-panel" class="sketchy-box">
-    <button class="panel-close" onclick="closePanel()">X</button>
-    <div id="panel-content">
-      </div>
+  <div id="panel-backdrop" onclick="closePanel()"></div>
+  <div id="side-panel">
+    <button class="panel-close" onclick="closePanel()">✕</button>
+    <div id="panel-content"></div>
   </div>
 </div>
 
@@ -512,10 +531,10 @@ let layerMarkers = {}; // Object to hold arrays of markers by category for filte
 let activeFilters = new Set(); // Tracks currently chosen layers
 
 document.addEventListener("DOMContentLoaded", function() {
-    // Initialize MapLibre Map (Note: Coordinates are [Lng, Lat])
+    // Initialize MapLibre Map
     map = new maplibregl.Map({
         container: 'parchment-map',
-        style: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
+        style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
         center: [77.22, 28.48], 
         zoom: 11,
         attributionControl: false
@@ -524,52 +543,59 @@ document.addEventListener("DOMContentLoaded", function() {
     // Add navigation controls to top-right
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
-    // Theme-aware map palette
-    const MAP_COLORS = {
-        light: { bg: '#f5f2eb', waterFill: '#d8d5ce', waterLine: '#c5c2bb', line: '#d0cdc6' },
-        dark:  { bg: '#1c1c1c', waterFill: '#141414', waterLine: '#202020', line: '#2a2a2a' }
-    };
-    function applyMapTheme() {
-        const c = document.documentElement.getAttribute('data-theme') === 'dark' ? MAP_COLORS.dark : MAP_COLORS.light;
-        map.getStyle().layers.forEach(layer => {
-            if (layer.id.includes('water')) {
-                if (layer.type === 'fill') map.setPaintProperty(layer.id, 'fill-color', c.waterFill);
-                if (layer.type === 'line') map.setPaintProperty(layer.id, 'line-color', c.waterLine);
-            } else if (layer.type === 'background') {
-                map.setPaintProperty(layer.id, 'background-color', c.bg);
-            } else if (layer.type === 'fill') {
-                map.setPaintProperty(layer.id, 'fill-color', c.bg);
-            } else if (layer.type === 'line') {
-                map.setPaintProperty(layer.id, 'line-color', c.line);
-            }
+    // ── LINE SCHEME MAP STYLE (Snazzy Maps #139756 palette → MapLibre GL) ──
+    function applyMondrianStyle() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const M = isDark ? {
+            bg:       '#111111',
+            land:     '#111111',
+            water:    '#004466',
+            waterLine:'#004466',
+            park:     '#111111',
+            building: '#1e1e1e',
+            road:     '#c0c0c0',
+        } : {
+            bg:       '#ffffff',
+            land:     '#ffffff',
+            water:    '#00ccff',
+            waterLine:'#00ccff',
+            park:     '#ffffff',
+            building: '#e8e8e8',
+            road:     '#424242',
+        };
+        map.getStyle().layers.forEach(function(layer) {
+            const id = layer.id.toLowerCase();
+            try {
+                if (layer.type === 'symbol') {
+                    map.setLayoutProperty(layer.id, 'visibility', 'none');
+                } else if (layer.type === 'background') {
+                    map.setPaintProperty(layer.id, 'background-color', M.bg);
+                } else if (layer.type === 'fill') {
+                    let fillColor;
+                    if (id.includes('water') || id.includes('ocean') || id.includes('lake') || id.includes('reservoir')) {
+                        fillColor = M.water;
+                    } else if (id.includes('park') || id.includes('grass') || id.includes('wood') || id.includes('landcover') || id.includes('landuse') || id.includes('scrub') || id.includes('nature') || id.includes('leisure') || id.includes('green')) {
+                        fillColor = M.park;
+                    } else if (id.includes('building') || id.includes('structure')) {
+                        fillColor = M.building;
+                    } else {
+                        fillColor = M.land;
+                    }
+                    map.setPaintProperty(layer.id, 'fill-color', fillColor);
+                    try { map.setPaintProperty(layer.id, 'fill-outline-color', fillColor); } catch(e) {}
+                } else if (layer.type === 'line') {
+                    if (id.includes('water') || id.includes('waterway') || id.includes('river')) {
+                        map.setPaintProperty(layer.id, 'line-color', M.waterLine);
+                    } else {
+                        map.setPaintProperty(layer.id, 'line-color', M.road);
+                    }
+                }
+            } catch(e) {}
         });
     }
-    map.on('style.load', applyMapTheme);
-    new MutationObserver(() => { if (map.isStyleLoaded()) applyMapTheme(); })
+    map.on('style.load', function() { applyMondrianStyle(); });
+    new MutationObserver(() => { if (map.isStyleLoaded()) { applyMondrianStyle(); } })
         .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
-    // Place labels (major regions — no street labels)
-    const PLACE_LABELS = [
-        { coords: [77.209, 28.664], name: 'Delhi',           cls: 'map-label-lg' },
-        { coords: [77.301, 28.535], name: 'Yamuna',          cls: 'map-label-water' },
-        { coords: [77.236, 28.548], name: 'Greater Kailash', cls: 'map-label-sm' },
-        { coords: [77.182, 28.506], name: 'Mehrauli',        cls: 'map-label-sm' },
-        { coords: [77.169, 28.497], name: 'Chattarpur',      cls: 'map-label-sm' },
-        { coords: [77.157, 28.523], name: 'Vasant Kunj',     cls: 'map-label-sm' },
-        { coords: [77.257, 28.511], name: 'Tughlaqabad',     cls: 'map-label-sm' },
-        { coords: [77.022, 28.459], name: 'Gurugram',        cls: '' },
-        { coords: [77.312, 28.405], name: 'Faridabad',       cls: '' },
-        { coords: [77.118, 28.362], name: 'Mangar Bani',     cls: 'map-label-sm' },
-        { coords: [77.082, 28.455], name: 'Aravalli Ridge',  cls: 'map-label-water' },
-    ];
-    PLACE_LABELS.forEach(({ coords, name, cls }) => {
-        const el = document.createElement('div');
-        el.className = 'map-label' + (cls ? ' ' + cls : '');
-        el.textContent = name;
-        new maplibregl.Marker({ element: el, anchor: 'center' })
-            .setLngLat(coords)
-            .addTo(map);
-    });
 
     // Lucide SVG paths
     const LUCIDE_SVG = {
@@ -577,10 +603,11 @@ document.addEventListener("DOMContentLoaded", function() {
         trees: `<path d="M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z"/><path d="M7 16v6"/><path d="M13 19v3"/><path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.6l-3-4a1 1 0 0 0-1.6 0l-3 4a1 1 0 0 0 .8 1.6H10"/>`,
         skull: `<path d="m12.5 17-.5-1-.5 1h1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 7 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/>`,
         stone: `<path d="M2 10c0-4.4 4-8 10-8s10 3.6 10 8c0 3.6-2 7-6 8.5C12 20 2 18 2 10Z"/><circle cx="9" cy="12" r="1"/><circle cx="14" cy="10" r="1"/>`,
+        'book-open': `<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 0 3-3h7z"/>`,
     };
 
     // layer key → icon mapping
-    const LAYER_ICON = { eco: 'trees', crit: 'skull', folk: 'stone' };
+    const LAYER_ICON = { eco: 'trees', crit: 'skull', folk: 'stone', story: 'book-open' };
 
     function addMarker(lng, lat, colorHex, isSound, categoryKey, shapeType, onClickCb) {
         if (!layerMarkers[categoryKey]) layerMarkers[categoryKey] = [];
@@ -589,8 +616,8 @@ document.addEventListener("DOMContentLoaded", function() {
         const paths   = LUCIDE_SVG[iconKey];
 
         const el = document.createElement('div');
-        const iucnClass = isSound ? ` pin-iucn-${categoryKey}` : '';
-        el.className = 'map-pin-wrap' + iucnClass;
+        const pinClass = isSound ? ` pin-iucn-${categoryKey}` : ` pin-cat-${categoryKey}`;
+        el.className = 'map-pin-wrap' + pinClass;
         el.innerHTML = `
             <div class="pin-icon-box">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
@@ -612,19 +639,19 @@ document.addEventListener("DOMContentLoaded", function() {
             id: 'mangar-bani', layer: 'folk', label: 'Chapter I: The Silver Grove', category: 'Folklore and Legends', color: '#6a6a6a', lng: 77.12, lat: 28.36,
             forensic: 'One of the last natural tropical forests in the Aravallis. Archaeological findings (2021) discovered Stone Age tools and cave paintings here estimated to be 100,000 years old.',
             source: 'Archaeological Survey of Haryana / Mangar Eco Club Archives',
-            narrative: 'Lohan’s lineage of watchers protected the Dhau trees—silver-skinned elders that bleed dark iron when cut. The forest is not wood; it is a tectonic conversation that takes the light of those who turn its life into ash.'
+            narrative: `Lohan was a man of the earth, though his skin was the color of parched bark. He belonged to a lineage of watchers, men who did not own the land but were owned by it. In the time of the great silence, Lohan lived near the edge of Mangar Bani.<br><br>The Dhau trees grew there—strange, silver-skinned elders that clung to the cliffs with the desperation of a lover. To Lohan, the forest was not a collection of wood; it was a conversation. The wind in the leaves was the gossip of ancestors.<br><br>One day, a merchant came from the plains. He arrived with bullock carts and men carrying axes of bright, cold iron. He did not look at the trees; he looked at the space they occupied, calculating how much grain their deaths could buy.<br><br>"The wood is hard," the merchant said, testing a blade against his thumb. "It will burn long and hot."<br><br>Lohan stood by the path, his hands empty. "The hermit, Gudariya Das, sleeps in these roots," Lohan said. His voice was like stones grinding together. "If you wound the tree, you wound the sleeper. And the sleeper does not like to be woken."<br><br>The merchant laughed. It was a thin, dry sound. He swung his axe into the oldest Dhau.<br><br>The forest went still. The birds did not fly; they simply ceased to exist in the air. When the blade bit into the silver bark, it did not scream. It groaned—a deep, tectonic vibration that traveled through Lohan’s feet. Then came the liquid. It was not the amber sap of a pine. It was dark, viscous, and smelled of iron and old secrets. It welled from the cut like blood from a fresh kill.<br><br>The merchant pulled back, his hands stained. The sky turned a bruised purple. Lohan watched as the merchant’s eyes began to cloud over, as if a grey moth had laid its wings over his pupils.<br><br>"I cannot see the sun," the merchant whispered.<br><br>"The forest has taken your light," Lohan replied. "Because you tried to turn its life into ash."<br><br>Lohan stayed in the Bani for forty days, washing the tree’s wound with the milk of wild goats until the bark scarred over. The merchant was never seen again, but the villagers say that on moonless nights, a blind man still wanders the ridge, feeling for the silver skin of the trees he once meant to burn.`
         },
         {
             id: 'tughlaqabad', layer: 'folk', label: 'Chapter II: The City of Thirst', category: 'Folklore and Legends', color: '#6a6a6a', lng: 77.26, lat: 28.51,
             forensic: 'Built in 1321. The Sultan’s decree forced laborers to abandon the Saint’s Baoli for the fort. The resulting curse saw the city abandoned within 15 years due to water scarcity.',
             source: 'ASI Historical Records / Medieval Chronicles of Delhi',
-            narrative: 'Ghiyas-ud-din Tughlaq built a fortress that mocked the sky, but the Ridge was thirsty. The Saint Nizamuddin dug a Baoli with love, while the Sultan built with pride. The stone refused to hold the heat of life.'
+            narrative: `Centuries are but a blink to the quartzite. Lohan's name was different now, but his blood was the same. He was a stone-cutter in the service of a King who believed himself a God.<br><br>Ghiyas-ud-din Tughlaq wanted a fortress that would mock the sky. He chose the highest ridge of the Aravallis to build Tughlaqabad. Lohan spent his days in the heat, his hammer singing against the stubborn stone. The Sultan was a man of "more." More walls. More height. More power.<br><br>"Let no man work on anything but my fort," the Sultan commanded. "The Ridge is mine. Every stone is a soldier in my army."<br><br>But the Ridge was thirsty. A few miles away, the Saint Nizamuddin was digging a Baoli—a deep, cool lung of water for the thirsty city. He was digging with love, while the Sultan was building with pride.<br><br>The Sultan banned the sale of oil to the Saint. "Let them dig in the darkness," he sneered. "Water is for the obedient."<br><br>Lohan, caught between the hammer and the prayer, watched the Saint at the edge of the pit. The Saint did not curse the Sultan's life. He looked at the massive, dry stones of the fort and whispered to the air:<br><br>"Ya rahe hissar, ya base gujjar." The words were soft, like the falling of a leaf, but they carried the weight of the mountain. That night, Lohan saw a miracle. The laborers dipped their lamps into the muddy water of the unfinished well. The water caught fire. It burned with a clear, white flame that smelled of jasmine and wet earth.<br><br>The Sultan's fort grew tall, but it was a hollow victory. The stone refused to hold the heat of life. The palace grew cold, even in the height of June. Within five years, the Sultan was dead—crushed by a pavilion that gave way as if the wood were tired of his weight. The fort was abandoned to the nomads and the goats.<br><br>Lohan walked through the empty arches, his hammer quiet. He understood then that the Ridge does not belong to those who build upon it. it belongs to those who allow it to give.`
         },
         {
             id: 'bhati-mines', layer: 'crit', label: 'Chapter III: The Sapphire Tear', category: 'Critical Red Zones', color: '#2a2a2a', lng: 77.21, lat: 28.43,
             forensic: 'Deep-pit scars reaching below the water table have filled with groundwater. Environmental studies indicate heavy metal leaching and the loss of surface water recharge capacity.',
             source: 'CGWB Pollution Reports / NGT Suo Motu Cognizance 2022',
-            narrative: 'They were mining the titan’s marrow. When the machines went silent, they left behind a landscape of scars. The mountain is bleeding a toxic blue, and it wants what was taken back. It has no more room for the living.'
+            narrative: `The modern world arrived not with an axe or a hammer, but with a roar.<br><br>Lohan was now an old man in a frayed coat, standing on the edge of the Bhati Mines. He watched the machines—great yellow beasts that bit into the earth and spat out the red sand. This was not the Sultan’s pride or the merchant’s greed. This was an appetite that had no face.<br><br>For thirty years, the Ridge was hollowed out. The dust was everywhere—it was in the bread, in the lungs, in the very dreams of the children. They were mining the titan’s marrow.<br><br>When the machines finally went silent, they left behind a landscape of scars. Lohan climbed down into one of the deep pits. Rain had filled the hollow, creating a lake of a blue so intense it hurt the eyes. People called it beautiful. They called it a "sanctuary."<br><br>Lohan knelt by the water. It was cold. It was toxic. It was the color of a dead man’s veins. He saw a young boy preparing to dive into the sapphire depths.<br><br>"Do not go in," Lohan said.<br><br>"Why?" the boy asked, his skin bright with sweat. "The water is beautiful."<br><br>"It is not a lake," Lohan said. "It is a wound. The mountain is bleeding blue, and it wants what was taken back. It has no more room for the living."<br><br>The boy did not listen. He dived. Lohan watched the ripples spread across the sapphire surface. The boy did not come up. The water stayed still, a perfect, unblinking eye staring back at the sun. The Ridge had taken another soul to fill the hole we had dug in its heart.`
         },
         {
             id: 'dadam-mine', layer: 'crit', label: 'The 300-Foot Wound', category: 'Critical Red Zones', color: '#2a2a2a', lng: 75.83, lat: 28.81,
@@ -675,7 +702,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     // Dynamic Sound Pins
-    const IUCN_COLORS = { 'CR': '#0a0a0a', 'EN': '#2a2a2a', 'VU': '#4a4a4a', 'NT': '#717171', 'LC': '#9a9a9a' };
+    const IUCN_COLORS = { 'CR': '#E60003', 'EN': '#FF5500', 'VU': '#FFCC00', 'NT': '#00AAEE', 'LC': '#00BB55' };
 
     fetch('/api/landing-records')
         .then(res => res.json())
@@ -699,6 +726,22 @@ document.addEventListener("DOMContentLoaded", function() {
                 let desc = `<p><strong>Location:</strong> ${rec.location_name}<br><strong>Recorded:</strong> ${rec.timestamp}</p>`;
                 
                 addMarker(rec.lng, rec.lat, color, true, status, 'circle', () => openPanel(`Sound Archive · ${status}`, rec.species_common, color, desc, audioHtml));
+            });
+        }).catch(err => console.log(err.message));
+
+    // Dynamic Story Pins from folklore ledger
+    fetch('/api/folklore-pins')
+        .then(res => res.json())
+        .then(stories => {
+            stories.forEach(story => {
+                if (!story.lat || !story.lng) return;
+                const meta = [story.location_name, story.timestamp].filter(Boolean).join(' · ');
+                const bodyHtml = story.body
+                    ? `<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,0.15);font-size:0.95rem;line-height:1.7;white-space:pre-wrap;">${story.body}</div>`
+                    : '';
+                const desc = `<p style="font-size:0.8rem;opacity:0.65;margin-bottom:10px;">${meta}</p>${bodyHtml}`;
+                addMarker(story.lng, story.lat, '#CC00AA', false, 'story', null,
+                    () => openPanel('Community Story', story.title, '#CC00AA', desc, null));
             });
         }).catch(err => console.log(err.message));
 });
@@ -741,19 +784,22 @@ window.toggleLayer = function(layerId, element) {
 
 window.openPanel = function(category, title, color, descHtml, audioHtml) {
     const panel = document.getElementById('side-panel');
+    const backdrop = document.getElementById('panel-backdrop');
     const content = document.getElementById('panel-content');
-    
+
     content.innerHTML = `
         <div class="panel-category" style="color:${color}">${category}</div>
         <h2 class="panel-title">${title}</h2>
         <div class="panel-body">${descHtml}</div>
         ${audioHtml ? audioHtml : ''}
     `;
+    backdrop.classList.add('open');
     panel.classList.add('open');
 };
 
 window.closePanel = function() {
     document.getElementById('side-panel').classList.remove('open');
+    document.getElementById('panel-backdrop').classList.remove('open');
 };
 
 window.signWitnessLedger = function(entryId) {

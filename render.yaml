@@ -2,16 +2,27 @@ services:
   - type: web
     name: mapping-dissonance
     runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    buildCommand: pip install -r requirements.txt && python setup_birdnet.py
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
     envVars:
       - key: SECRET_KEY
         generateValue: true
-      - key: NEWS_API_KEY
+      - key: MEDIASTACK_API_KEY
+        sync: false
+      - key: IUCN_TOKEN
+        sync: false
+      - key: ALGORAND_MNEMONIC
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: DATABASE_URL
         sync: false
       - key: PYTHON_VERSION
-        value: 3.11.0
-    disk:
-      name: uploads
-      mountPath: /opt/render/project/src/static/uploads
-      sizeGB: 1
+        value: 3.12.0
+    disks:
+      - name: uploads
+        mountPath: /opt/render/project/src/static/uploads
+        sizeGB: 1
+      - name: db
+        mountPath: /opt/render/project/src/instance
+        sizeGB: 1

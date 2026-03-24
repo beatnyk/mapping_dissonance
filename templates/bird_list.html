@@ -5,13 +5,12 @@
 <style>
   /* ── GLOBAL THEME INHERITANCE ── */
   :root {
-    --sketch-radius: 2px 255px 3px 25px / 255px 5px 225px 3px;
     --box-border: 1px solid var(--hairline);
   }
 
   .sketchy-box {
     border: var(--box-border);
-    border-radius: var(--sketch-radius);
+    border-radius: 0;
     background: var(--bg-alt);
   }
 
@@ -46,7 +45,12 @@
   }
 
   .birdlist-header {
-    margin-bottom: 38.2px;
+    margin-bottom: 23.6px;
+    position: sticky;
+    top: 85px;
+    background: var(--bg);
+    z-index: 10;
+    padding-bottom: 14.6px;
   }
 
   .birdlist-title {
@@ -187,9 +191,36 @@
   html[data-theme="dark"] .legend-dot--nt { background: #909090; }
   html[data-theme="dark"] .legend-dot--lc { background: #717171; }
 
-  /* Hidden state for JS Search filter */
-  .bl-hidden {
+  /* Hidden state for JS filters */
+  .bl-hidden, .bl-iucn-hidden {
     display: none !important;
+  }
+
+  /* ── IUCN FILTER LEGEND ── */
+  .legend-item {
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .legend-item:hover { opacity: 0.7; }
+  .legend-item.filter-active {
+    font-weight: 900;
+    opacity: 1 !important;
+  }
+  .birdlist-legend.filtering .legend-item:not(.filter-active) {
+    opacity: 0.35;
+  }
+
+  /* ── SCROLLABLE TABLE WRAPPER ── */
+  .birdlist-table-wrap {
+    overflow-y: auto;
+    max-height: calc(100vh - 360px);
+    border: 1px solid var(--hairline);
+  }
+  .birdlist-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 1;
   }
 
   /* Responsive Adjustments */
@@ -197,6 +228,7 @@
     .birdlist-title { font-size: 2.5rem; }
     .birdlist-table th, .birdlist-table td { padding: 10px 4px; }
     .bl-local { font-size: 0.85rem; }
+    .birdlist-table-wrap { max-height: calc(100vh - 420px); }
   }
 </style>
 {% endblock %}
@@ -224,14 +256,15 @@
     >
   </div>
 
-  <div class="birdlist-legend sketchy-box">
-    <div class="legend-item"><span class="legend-dot legend-dot--lc"></span>LC — Least Concern</div>
-    <div class="legend-item"><span class="legend-dot legend-dot--nt"></span>NT — Near Threatened</div>
-    <div class="legend-item"><span class="legend-dot legend-dot--vu"></span>VU — Vulnerable</div>
-    <div class="legend-item"><span class="legend-dot legend-dot--en"></span>EN — Endangered</div>
-    <div class="legend-item"><span class="legend-dot legend-dot--cr"></span>CR — Critically Endangered</div>
+  <div class="birdlist-legend sketchy-box" id="bl-legend">
+    <div class="legend-item" data-iucn="LC" onclick="filterIUCN('LC', this)"><span class="legend-dot legend-dot--lc"></span>LC — Least Concern</div>
+    <div class="legend-item" data-iucn="NT" onclick="filterIUCN('NT', this)"><span class="legend-dot legend-dot--nt"></span>NT — Near Threatened</div>
+    <div class="legend-item" data-iucn="VU" onclick="filterIUCN('VU', this)"><span class="legend-dot legend-dot--vu"></span>VU — Vulnerable</div>
+    <div class="legend-item" data-iucn="EN" onclick="filterIUCN('EN', this)"><span class="legend-dot legend-dot--en"></span>EN — Endangered</div>
+    <div class="legend-item" data-iucn="CR" onclick="filterIUCN('CR', this)"><span class="legend-dot legend-dot--cr"></span>CR — Critically Endangered</div>
   </div>
 
+  <div class="birdlist-table-wrap">
   <table class="birdlist-table" id="bl-table">
     <thead>
       <tr>
@@ -244,7 +277,7 @@
     </thead>
     <tbody>
       {% for bird in birds %}
-      <tr data-search="{{ bird.common|lower }} {{ bird.scientific|lower }} {{ bird.hindi|lower }} {{ bird.iucn|lower }}">
+      <tr data-search="{{ bird.common|lower }} {{ bird.scientific|lower }} {{ bird.hindi|lower }} {{ bird.iucn|lower }}" data-iucn="{{ bird.iucn }}">
         <td>
           <span class="bl-common">{{ bird.common }}</span>
           <span class="bl-sci">{{ bird.scientific }}</span>
@@ -265,6 +298,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div><!-- /birdlist-table-wrap -->
 
 </div>
 
@@ -296,21 +330,44 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// ── SEARCH FILTER LOGIC (PRESERVED) ──
+// ── SEARCH FILTER LOGIC ──
+var _activeIUCN = null;
+
 (function () {
   var search = document.getElementById('bl-search');
   var rows   = document.querySelectorAll('#bl-table tbody tr');
 
   search.addEventListener('input', function () {
     var q = search.value.toLowerCase().trim();
-    var count = 0;
     rows.forEach(function (row) {
       var match = !q || row.getAttribute('data-search').indexOf(q) !== -1;
       row.classList.toggle('bl-hidden', !match);
-      if (match) count++;
     });
   });
 })();
+
+// ── IUCN FILTER LOGIC ──
+function filterIUCN(status, el) {
+  var rows   = document.querySelectorAll('#bl-table tbody tr');
+  var legend = document.getElementById('bl-legend');
+  var items  = document.querySelectorAll('#bl-legend .legend-item');
+
+  if (_activeIUCN === status) {
+    // Deselect — show all
+    _activeIUCN = null;
+    el.classList.remove('filter-active');
+    legend.classList.remove('filtering');
+    rows.forEach(function(r) { r.classList.remove('bl-iucn-hidden'); });
+  } else {
+    _activeIUCN = status;
+    items.forEach(function(i) { i.classList.remove('filter-active'); });
+    el.classList.add('filter-active');
+    legend.classList.add('filtering');
+    rows.forEach(function(r) {
+      r.classList.toggle('bl-iucn-hidden', r.getAttribute('data-iucn') !== status);
+    });
+  }
+}
 </script>
 
 {% endblock %}
