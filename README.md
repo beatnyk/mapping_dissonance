@@ -32,15 +32,29 @@ Runs on `http://127.0.0.1:5001`.
 
 ## Environment variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `SECRET_KEY` | Yes (production) | Flask session secret |
-| `NEWS_API_KEY` | No | NewsAPI key (Tier 3 news fallback) |
-| `IUCN_TOKEN` | No | IUCN Red List API bearer token |
-| `ALGORAND_MNEMONIC` | No | 25-word mnemonic for Algorand Testnet notarisation |
-| `DATABASE_URL` | No | SQLAlchemy URI — defaults to SQLite in `instance/` |
+<!-- AUTO-GENERATED:ENV -->
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `SECRET_KEY` | Yes | Flask session signing key | `change-me-in-production` |
+| `MEDIASTACK_API_KEY` | No | Mediastack API key for Tier 3 news | `your-api-key-here` |
+| `IUCN_TOKEN` | No | IUCN Red List API bearer token | `your-api-token-here` |
+| `ALGORAND_MNEMONIC` | No | 25-word mnemonic for Algorand Testnet | `word1 word2 ...` |
+| `SENTRY_DSN` | No | Sentry DSN for error tracking | `https://sentry.io/...` |
+| `DATABASE_URL` | No | SQLAlchemy connection string | `postgresql://user:pass@host:5432/db` |
+<!-- /AUTO-GENERATED:ENV -->
 
 Copy `.env.example` to `.env` for local development (not committed).
+
+## Commands
+
+<!-- AUTO-GENERATED:COMMANDS -->
+| Command | Source | Description |
+|---------|--------|-------------|
+| `python app.py` | `README.md` | Start local development server (port 5001) |
+| `gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120` | `Procfile` | Production start command (web) |
+| `gunicorn app:app --bind 0.0.0.0:80 --workers 1 --timeout 120` | `Dockerfile` | Container start command (port 80) |
+| `pip install -r requirements.txt && python setup_birdnet.py` | `render.yaml` | Build command for PaaS deployment |
+<!-- /AUTO-GENERATED:COMMANDS -->
 
 ## Deployment
 
